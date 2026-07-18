@@ -73,3 +73,9 @@ These are project decisions, not verified implementation results. Supersede entr
 **Decision:** begin local sidecars with inspectable newline-delimited JSON over stdio; keep semantics transport-neutral for remote agents.
 
 **Rationale:** simplest adequate implementation; move to pipes/sockets/binary framing only with evidence.
+
+## D-013 — One JSON Schema contract pack for Phase 0
+
+**Decision:** use JSON Schema Draft 2020-12 in `schemas/protocol-v1.schema.json`, with `$defs` for the minimum node, event, capability, command, and adapter-envelope contracts.
+
+**Rationale:** one versioned file keeps the simulator boundary inspectable without introducing a schema build system or duplicated shared definitions. Schema validation does not define a canonical byte representation; approval signing remains blocked on a separate canonicalization decision.

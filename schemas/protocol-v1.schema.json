@@ -1,0 +1,237 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://orclink.local/schemas/protocol-v1.schema.json",
+  "title": "OrcLink protocol v1 contracts",
+  "oneOf": [
+    { "$ref": "#/$defs/node" },
+    { "$ref": "#/$defs/event" },
+    { "$ref": "#/$defs/capability" },
+    { "$ref": "#/$defs/command" },
+    { "$ref": "#/$defs/adapter_envelope" }
+  ],
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "risk": {
+      "enum": ["R0", "R1", "R2", "R3"]
+    },
+    "protocol_version": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["major", "minor"],
+      "properties": {
+        "major": { "const": 1 },
+        "minor": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "capability_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "schema_version"],
+      "properties": {
+        "name": { "$ref": "#/$defs/identifier" },
+        "schema_version": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "node": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "id",
+        "display_name",
+        "kind",
+        "trust_state",
+        "connection_state",
+        "capabilities"
+      ],
+      "properties": {
+        "schema_version": { "const": 1 },
+        "id": { "$ref": "#/$defs/identifier" },
+        "display_name": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "kind": { "$ref": "#/$defs/identifier" },
+        "trust_state": { "enum": ["quarantined", "paired", "revoked"] },
+        "connection_state": {
+          "enum": ["online", "degraded", "offline", "resynchronizing"]
+        },
+        "capabilities": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/capability_ref" },
+          "uniqueItems": true
+        }
+      }
+    },
+    "event": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "id",
+        "source_id",
+        "source_sequence",
+        "source_time",
+        "received_at",
+        "kind",
+        "correlation_id",
+        "payload"
+      ],
+      "properties": {
+        "schema_version": { "const": 1 },
+        "id": { "$ref": "#/$defs/identifier" },
+        "source_id": { "$ref": "#/$defs/identifier" },
+        "source_sequence": {
+          "type": ["integer", "null"],
+          "minimum": 0
+        },
+        "source_time": { "$ref": "#/$defs/timestamp" },
+        "received_at": { "$ref": "#/$defs/timestamp" },
+        "kind": { "$ref": "#/$defs/identifier" },
+        "correlation_id": {
+          "anyOf": [
+            { "$ref": "#/$defs/identifier" },
+            { "type": "null" }
+          ]
+        },
+        "payload": { "type": "object" }
+      }
+    },
+    "capability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "name",
+        "risk",
+        "availability",
+        "arguments_schema",
+        "result_schema",
+        "timeout_ms",
+        "concurrency",
+        "idempotency",
+        "cancellation",
+        "verification"
+      ],
+      "properties": {
+        "schema_version": { "type": "integer", "minimum": 1 },
+        "name": { "$ref": "#/$defs/identifier" },
+        "risk": { "$ref": "#/$defs/risk" },
+        "availability": {
+          "enum": ["online_only", "online_or_offline", "installed_offline_workflow"]
+        },
+        "arguments_schema": { "type": "object" },
+        "result_schema": { "type": "object" },
+        "timeout_ms": { "type": "integer", "minimum": 1 },
+        "concurrency": { "enum": ["parallel", "serial_per_node", "singleton"] },
+        "idempotency": { "enum": ["safe", "conditional", "unsafe", "none"] },
+        "cancellation": { "enum": ["supported", "best_effort", "unsupported"] },
+        "verification": { "enum": ["none", "adapter_reported", "observed_state"] }
+      }
+    },
+    "command": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "id",
+        "requester_id",
+        "target",
+        "capability",
+        "arguments",
+        "risk",
+        "state",
+        "requested_at",
+        "deadline",
+        "idempotency_key",
+        "outcome"
+      ],
+      "properties": {
+        "schema_version": { "const": 1 },
+        "id": { "$ref": "#/$defs/identifier" },
+        "requester_id": { "$ref": "#/$defs/identifier" },
+        "target": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["node_id"],
+          "properties": {
+            "node_id": { "$ref": "#/$defs/identifier" },
+            "component_id": { "$ref": "#/$defs/identifier" }
+          }
+        },
+        "capability": { "$ref": "#/$defs/capability_ref" },
+        "arguments": { "type": "object" },
+        "risk": { "$ref": "#/$defs/risk" },
+        "state": {
+          "enum": [
+            "Proposed",
+            "Validated",
+            "Authorized",
+            "Queued",
+            "Executing",
+            "Verifying",
+            "Cancelling",
+            "Succeeded",
+            "Failed",
+            "TimedOut",
+            "Cancelled",
+            "Rejected",
+            "Uncertain"
+          ]
+        },
+        "requested_at": { "$ref": "#/$defs/timestamp" },
+        "deadline": { "$ref": "#/$defs/timestamp" },
+        "idempotency_key": {
+          "anyOf": [
+            { "$ref": "#/$defs/identifier" },
+            { "type": "null" }
+          ]
+        },
+        "outcome": {
+          "enum": ["executed_verified", "executed_unverified", "not_executed", "uncertain", null]
+        }
+      }
+    },
+    "adapter_envelope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "message_id", "protocol_version", "payload"],
+      "properties": {
+        "type": {
+          "enum": [
+            "hello",
+            "hello_ack",
+            "node_snapshot",
+            "capability_declare",
+            "event",
+            "command_invoke",
+            "command_update",
+            "error",
+            "heartbeat"
+          ]
+        },
+        "message_id": { "$ref": "#/$defs/identifier" },
+        "protocol_version": { "$ref": "#/$defs/protocol_version" },
+        "payload": { "type": "object" },
+        "in_reply_to": {
+          "anyOf": [
+            { "$ref": "#/$defs/identifier" },
+            { "type": "null" }
+          ]
+        },
+        "adapter_instance_id": {
+          "anyOf": [
+            { "$ref": "#/$defs/identifier" },
+            { "type": "null" }
+          ]
+        }
+      }
+    }
+  }
+}

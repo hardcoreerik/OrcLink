@@ -30,7 +30,7 @@ Resolve questions with links to vendor documentation, measured results, or recor
 
 ## Protocol and core
 
-- JSON Schema dialect and canonicalization rules for approval argument binding?
+- What canonicalization rules bind exact approval arguments to signatures or digests?
 - Exact event retention limits and telemetry coalescing policy?
 - HTTP/WebSocket framework and local IPC choice after simulator measurements?
 - How are daemon trust roots created, backed up, and recovered without weakening device identity?
@@ -53,3 +53,7 @@ Resolve questions with links to vendor documentation, measured results, or recor
 - Threat model and local-network exposure defaults?
 - Naming and public licensing decisions?
 - What measured need would justify a public adapter SDK/marketplace?
+
+## Resolved
+
+- JSON Schema Draft 2020-12 is the Phase 0 contract dialect; see D-013 in `DECISIONS.md`.

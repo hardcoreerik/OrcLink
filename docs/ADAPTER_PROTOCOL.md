@@ -15,11 +15,14 @@ At startup the adapter sends:
 ```json
 {
   "type": "hello",
-  "protocol": { "major": 1, "minor": 0 },
-  "adapter": { "id": "ollama.local", "version": "0.1.0" },
-  "features": ["discovery", "telemetry", "commands", "cancellation"],
-  "capability_namespaces": ["ollama"],
-  "config_schema_version": 1
+  "message_id": "message_hello_01",
+  "protocol_version": { "major": 1, "minor": 0 },
+  "payload": {
+    "adapter": { "id": "ollama.local", "version": "0.1.0" },
+    "features": ["discovery", "telemetry", "commands", "cancellation"],
+    "capability_namespaces": ["ollama"],
+    "config_schema_version": 1
+  }
 }
 ```
 
@@ -28,6 +31,8 @@ The daemon responds with accepted protocol/features, adapter instance ID, limits
 ## Envelope
 
 Every message has `type`, `message_id`, `protocol_version`, and `payload`. Replies include `in_reply_to`. Operational messages also include relevant `adapter_instance_id`, node ID, correlation/command ID, source sequence, and timestamps. Message size and rate are bounded.
+
+The authoritative Phase 0 contract is `schemas/protocol-v1.schema.json`. It uses one envelope for startup and operational messages; message-specific payload schemas can be added only when the simulator needs them.
 
 ## Discovery and registration
 

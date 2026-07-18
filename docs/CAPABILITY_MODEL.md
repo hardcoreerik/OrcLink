@@ -16,7 +16,7 @@ Use a small stable core and adapter-owned namespaces; do not build a universal c
 
 ## Capability declaration
 
-A declaration includes name, schema version, argument/result schemas, risk class, timeout bounds, concurrency rule, offline eligibility, idempotency behavior, cancellation support, and verification method. Capability names describe intent, for example `ollama.model.list`, `host.service.restart`, or `m5tab5.display.alert.show`.
+A declaration includes name, schema version, argument/result schemas, a fixed R0-R3 risk floor, timeout bounds, concurrency rule, offline eligibility, idempotency behavior, cancellation support, and verification method. Capability names describe intent, for example `ollama.model.list`, `host.service.restart`, or `m5tab5.display.alert.show`. A capability without a fixed risk floor is not declared or invokable.
 
 Declaring a capability does not authorize it. The daemon intersects declaration, requester grants, target policy, current mode, and approval.
 
@@ -64,11 +64,13 @@ Risk is a floor set by the capability declaration. Policy may raise it based on 
 | `m5tab5.display.alert.show` | R1 | Bounded local display state |
 | `m5tab5.telemetry.subscribe` | R0 | Rate and retention bounded |
 | `m5tab5.workflow.install` | R2 | Signed definition, allowlist, expiry, resource bounds |
-| `m5tab5.console.approval.respond` | contextual | Authenticated operator, online daemon, anti-replay |
-| `m5tab5.gpio.set` | R1-R3 | Hardware/function-specific; unavailable until validated |
+| `m5tab5.console.approval.respond` | R2 | Authenticated operator, online daemon, anti-replay; policy raises to the approved command's risk |
+| `m5tab5.gpio.set` | — | Not declared until hardware/function validation establishes a fixed floor |
 
 ## M5Tab5 node modeling
 
 One physical device has one stable node identity. Onboard functions are components. Attached peripherals are components only when their lifecycle and trust are inseparable from the gateway; otherwise they receive quarantined child-node identities. Changing Wi-Fi address or serial attachment does not change identity.
 
 An M5Tab5 capability declares whether it is `online_only` or allowed under an installed `offline_policy`. An offline policy fixes capability names, arguments/ranges, expiry, invocation limits, and required local conditions. Approval responses are always online-only in v0.1.
+
+The minimum machine-readable node, event, capability, command, and adapter-envelope contracts are in `schemas/protocol-v1.schema.json`. Hardware examples remain design examples until they conform to a validated target capability set.
