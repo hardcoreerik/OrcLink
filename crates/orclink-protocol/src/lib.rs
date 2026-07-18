@@ -1,4 +1,4 @@
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 use std::{
     collections::{HashMap, HashSet},
@@ -6,7 +6,7 @@ use std::{
 };
 use time::OffsetDateTime;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 #[serde(untagged)]
 pub enum Record {
     Node(Node),
@@ -16,7 +16,7 @@ pub enum Record {
     AdapterEnvelope(AdapterEnvelope),
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct Node {
     pub schema_version: u64,
@@ -28,7 +28,7 @@ pub struct Node {
     pub capabilities: Vec<CapabilityRef>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct Event {
     pub schema_version: u64,
@@ -42,7 +42,7 @@ pub struct Event {
     pub payload: Map<String, Value>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct Capability {
     pub schema_version: u64,
@@ -58,7 +58,7 @@ pub struct Capability {
     pub verification: Verification,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct Command {
     pub schema_version: u64,
@@ -75,7 +75,7 @@ pub struct Command {
     pub outcome: Option<Outcome>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct AdapterEnvelope {
     #[serde(rename = "type")]
@@ -87,21 +87,21 @@ pub struct AdapterEnvelope {
     pub adapter_instance_id: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct CapabilityRef {
     pub name: String,
     pub schema_version: u64,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct Target {
     pub node_id: String,
     pub component_id: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct ProtocolVersion {
     pub major: u64,
@@ -110,7 +110,7 @@ pub struct ProtocolVersion {
 
 macro_rules! wire_enum {
     ($name:ident { $($variant:ident $(= $wire:literal)?),+ $(,)? }) => {
-        #[derive(Debug, Deserialize)]
+        #[derive(Debug, Deserialize, Serialize)]
         pub enum $name {
             $($(#[serde(rename = $wire)])? $variant),+
         }

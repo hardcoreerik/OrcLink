@@ -1,3 +1,8 @@
 [workspace]
-members = ["crates/orclink-core", "crates/orclink-protocol"]
+members = [
+    "adapters/host-windows",
+    "adapters/ollama",
+    "crates/orclink-core",
+    "crates/orclink-protocol",
+]
 resolver = "3"
