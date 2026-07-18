@@ -6,3 +6,4 @@ firmware/m5tab5/build/
 firmware/m5tab5/sdkconfig
 firmware/m5tab5/.pio/
 firmware/m5tab5/managed_components/
+.orclink/

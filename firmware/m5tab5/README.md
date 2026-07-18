@@ -51,3 +51,13 @@ PlatformIO must run on Python 3.10 through 3.13 for this pioarduino release.
 After flashing, reset the device if it remains in download mode. A successful
 touch on the on-screen button emits an `operator_touch` protocol event with
 the mapped display coordinates.
+
+Run the host adapter to provision or reuse the ignored local credential,
+authenticate the device, forward envelopes, and acknowledge journal records:
+
+```powershell
+cargo run -p orclink-adapter-m5tab5 -- COM17
+```
+
+The development unit stores its device credential in unencrypted NVS. This is
+adequate for the direct-USB proof, not a production protected-key claim.

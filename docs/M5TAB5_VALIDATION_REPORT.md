@@ -4,22 +4,31 @@ Date: 2026-07-18
 
 Target: M5Stack Tab5 on COM17
 
-Status: build and flash verified; application boot proof awaits one physical reset
+Status: native display/touch and authenticated direct-USB resilience proof verified; network and production hardening remain open
 
 ## Repo-verified
 
 - The firmware builds with ESP-IDF 5.5.3 for `esp32p4` and pre-v3 silicon,
   minimum revision v0.1. That silicon family selection matches the official
   M5Stack Tab5 demo configuration.
-- The application image is 222,208 bytes and has 86% of its 1,536 KiB app
-  partition free.
+- The original ESP-IDF serial image and the native pioarduino/M5Unified UI both
+  build for the measured pre-v3 ESP32-P4 silicon. The authenticated UI build
+  uses 545,840 bytes of its 6.25 MiB app partition and 29,752 bytes of internal
+  RAM; its flashed `firmware.bin` SHA-256 is
+  `6FFE0B137A1D84FF296DA332D9C5810AC427C85AA80B17E4448C016EADDC41C7`.
 - The firmware installs an interrupt-driven USB Serial/JTAG console and emits
   protocol-v1 `hello`, `node_snapshot`, and sequenced `heartbeat` envelopes.
 - The host adapter ignores non-JSON boot diagnostics, strictly deserializes
   adapter envelopes, rejects unsupported protocol majors, and defaults to
   COM17.
-- Hardware-changing capabilities remain absent. The advertised surface is
-  limited to `m5tab5.device.info` and `m5tab5.health.read`.
+- The UI advertises only device info, health, display status, touch input, and
+  journal synchronization. Hardware-changing capabilities remain absent.
+- The host adapter persists a 32-byte credential outside the repository,
+  provisions it only while the device is unpaired over direct USB, verifies a
+  mutually authenticated random challenge with domain-separated HMAC-SHA256,
+  and forwards no device JSON before authentication succeeds.
+- The firmware keeps an eight-entry NVS ring journal. The host acknowledges
+  stable journal sequence numbers after forwarding them.
 
 ## Runtime-observed
 
@@ -35,15 +44,26 @@ Status: build and flash verified; application boot proof awaits one physical res
   `9A57B3947FF63273435F34045730FEA58B76F01C1920453AC1EBB7FBE841CB8A`.
 - The original image reported ESP-IDF 5.5.4 and used dual 6.25 MiB app slots,
   SPIFFS, NVS, OTA metadata, and a coredump partition.
-- The compatible OrcLink bootloader, partition table, and application were
-  written to COM17. Esptool verified every written region by hash.
-- Built-in JTAG enumerates and can halt both HP cores. Remote USB/JTAG resets
-  repeatedly enter ROM download mode (`boot 0x204`) because the USB boot strap
-  remains asserted. No live application envelope has therefore been observed.
-- Internal software-reset trials covered all four DTR/RTS combinations; every
-  combination still entered `boot 0x204`. The device is behind two shared USB
-  hubs, so cycling a parent hub would disrupt unrelated devices and would not
-  reliably remove battery power.
+- The compatible OrcLink bootloader, partition table, and native UI application
+  were written to COM17. Esptool verified every written region by hash.
+- The application emitted authenticated `hello`, `node_snapshot`, journal, and
+  heartbeat envelopes under stable identity `m5tab5_30eda0e2e695`.
+- A deliberately invalid host proof returned `AUTH_DENIED`; a subsequent
+  unauthenticated `PING` produced zero JSON envelopes.
+- Runtime snapshot: 1280x720 display, `touch_ready=true`, 16 MiB flash, 32 MiB
+  PSRAM, and 422,680 bytes free heap after authentication.
+- Physical touches produced mapped coordinates `(773,370)`, `(802,342)`,
+  `(758,323)`, and `(724,358)` and were journaled with stable sequences 4-7.
+- After the host adapter was stopped for longer than the five-second lease, the
+  device retained journal record 8 (`session_degraded`). Reusing the same
+  credential replayed record 8 followed by record 9 (`session_online`), and
+  acknowledgements reduced pending records to zero.
+- An app-only rewrite/reboot preserved both NVS identity and journal state.
+  Reauthentication continued at record 10 (`boot`) and record 11
+  (`session_online`), then cleared the pending queue.
+- Built-in JTAG enumerates and can halt both HP cores. Some USB/JTAG reset-line
+  combinations still enter ROM download mode (`boot 0x204`); normal verified
+  esptool hard reset and direct serial reopen both booted the application.
 
 ## Authoritative platform facts
 
@@ -57,8 +77,19 @@ validation at commit `68b19d37fbf9cefd5f256992f5dca34794c62ab4`.
 
 ## Gate result
 
-The exact board, build target, recovery path, flash process, and host-side wire
-reader are proven. Phase 2 is not complete: a person must power-cycle or press
-reset once, after which the serial stream must be captured and schema-validated.
-Display/touch, identity storage, authenticated transport, durable journal,
-degraded UI, and reconnect tests remain unproven and disabled.
+The exact board, recovery path, stable identity, native touch UI, one telemetry
+source, physical-USB authenticated session, bounded journal, degraded state,
+host-loss replay, and app-reboot persistence are proven on hardware. The native
+UI choice is therefore evidence-backed.
+
+Full Phase 2 remains open on four explicit gates:
+
+- ESP32-C6 Wi-Fi association and TLS/certificate validation need network
+  credentials and AP/daemon loss testing.
+- The development unit's NVS key is not protected because secure boot and flash
+  encryption are disabled. Burning irreversible eFuses requires a separate
+  production-hardening decision and is not part of this proof.
+- Sudden-power-loss, storage-full, wear, and journal-pressure recovery remain
+  unmeasured.
+- Power, thermal, battery, sleep/wake, and vendor recovery measurements remain
+  unmeasured.

@@ -79,3 +79,9 @@ These are project decisions, not verified implementation results. Supersede entr
 **Decision:** use JSON Schema Draft 2020-12 in `schemas/protocol-v1.schema.json`, with `$defs` for the minimum node, event, capability, command, and adapter-envelope contracts.
 
 **Rationale:** one versioned file keeps the simulator boundary inspectable without introducing a schema build system or duplicated shared definitions. Schema validation does not define a canonical byte representation; approval signing remains blocked on a separate canonicalization decision.
+
+## D-014 — Native M5Unified UI for the Tab5 proof
+
+**Decision:** use the pinned pioarduino/M5Unified/M5GFX path for the Phase 2 native console while retaining the minimal ESP-IDF image as a low-level serial and recovery proof.
+
+**Rationale:** the native path rendered the measured 1280x720 panel, mapped physical touch, used NVS, and survived reconnect testing. The current vendor ESP-IDF component graph did not compile because its codec and LVGL source APIs disagreed with its dependency versions.
