@@ -3,6 +3,7 @@ members = [
     "adapters/host-windows",
     "adapters/ollama",
     "crates/orclink-core",
+    "crates/orclink-daemon",
     "crates/orclink-protocol",
 ]
 resolver = "3"
