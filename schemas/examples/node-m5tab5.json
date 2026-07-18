@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "id": "node_m5tab5_workshop_01",
+  "display_name": "Workshop M5Tab5",
+  "kind": "orclink.edge.m5tab5",
+  "trust_state": "paired",
+  "connection_state": "degraded",
+  "identity": {
+    "public_key_fingerprint": "EXAMPLE-SHA256-FINGERPRINT-NOT-A-REAL-KEY",
+    "pairing_method": "operator_verified_code",
+    "hardware_identifier": null,
+    "hardware_identifier_status": "unknown_pending_validation"
+  },
+  "agent": {
+    "version": "0.1.0-example",
+    "protocol_major": 1,
+    "protocol_minor": 0,
+    "boot_id": "boot_example_01",
+    "config_revision": 7,
+    "last_durable_event_sequence": 184
+  },
+  "connection": {
+    "transport": "tls_websocket_assumption",
+    "endpoint": "wss://m5tab5-workshop.local/orclink",
+    "last_authoritative_contact": "2026-07-18T12:00:00-07:00"
+  },
+  "components": [
+    {
+      "id": "display",
+      "kind": "operator.display",
+      "verification": "pending_hardware_validation"
+    },
+    {
+      "id": "touch_input",
+      "kind": "operator.input",
+      "verification": "pending_hardware_validation"
+    },
+    {
+      "id": "sensor_example",
+      "kind": "sensor.unverified",
+      "verification": "placeholder_not_a_hardware_claim"
+    }
+  ],
+  "capabilities": [
+    "m5tab5.device.info",
+    "m5tab5.telemetry.subscribe",
+    "m5tab5.event.journal.sync",
+    "m5tab5.display.alert.show",
+    "m5tab5.display.alert.clear",
+    "m5tab5.workflow.list",
+    "m5tab5.workflow.start",
+    "m5tab5.workflow.cancel",
+    "m5tab5.console.approval.respond"
+  ],
+  "health": {
+    "level": "warning",
+    "reason": "upstream_daemon_unreachable",
+    "observed_at": "2026-07-18T12:00:05-07:00",
+    "quality": "last_known"
+  },
+  "offline_policy": {
+    "enabled": true,
+    "installed_workflow_ids": ["workflow_local_status_and_alert"],
+    "central_approvals_allowed": false
+  },
+  "hardware_facts": {
+    "status": "unverified",
+    "validated_model": null,
+    "validated_os_runtime": null,
+    "validated_interfaces": []
+  }
+}

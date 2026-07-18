@@ -1,0 +1,94 @@
+schema_version: 1
+catalog: m5tab5.example
+status: design_example_not_hardware_verification
+
+capabilities:
+  - name: m5tab5.device.info
+    risk: R0
+    availability: online_or_offline
+    arguments: {}
+    result: device_identity_and_validated_platform_facts
+
+  - name: m5tab5.telemetry.subscribe
+    risk: R0
+    availability: online
+    arguments:
+      metrics: list_of_declared_metric_names
+      maximum_rate_hz: bounded_number
+    result: subscription_id
+
+  - name: m5tab5.event.journal.sync
+    risk: R0
+    availability: online
+    arguments:
+      after_sequence: non_negative_integer
+      maximum_events: bounded_positive_integer
+    result: ordered_events_and_durable_checkpoint
+
+  - name: m5tab5.display.alert.show
+    risk: R1
+    availability: online_or_installed_offline_workflow
+    arguments:
+      alert_id: string
+      severity: info_warning_critical
+      text: bounded_string
+      expires_at: timestamp_or_null
+    result: displayed_state
+
+  - name: m5tab5.display.alert.clear
+    risk: R1
+    availability: online_or_installed_offline_workflow
+    arguments:
+      alert_id: string
+    result: displayed_state
+
+  - name: m5tab5.peripheral.list
+    risk: R0
+    availability: online_or_offline
+    arguments: {}
+    result: discovered_quarantined_or_approved_peripherals
+
+  - name: m5tab5.workflow.install
+    risk: R2
+    availability: online_only
+    arguments:
+      signed_definition: workflow_with_capability_allowlist
+      expires_at: timestamp
+      invocation_limit: positive_integer
+    result: installed_workflow_identity
+
+  - name: m5tab5.workflow.start
+    risk: contextual_R1_to_R3
+    availability: per_installed_workflow_policy
+    arguments:
+      workflow_id: string
+      bounded_inputs: object
+    result: workflow_run_id
+    notes: effective_risk_is_at_least_the_highest_step_risk
+
+  - name: m5tab5.workflow.cancel
+    risk: contextual
+    availability: online_or_local_operator
+    arguments:
+      workflow_run_id: string
+    result: cancelled_or_reconciliation_required
+
+  - name: m5tab5.console.approval.respond
+    risk: contextual
+    availability: online_only
+    arguments:
+      approval_id: string
+      decision: approve_or_deny
+      displayed_request_digest: string
+      operator_presence_proof: platform_specific_pending_validation
+    result: daemon_acknowledged_decision
+    notes: an_offline_response_never_grants_central_authority
+
+  - name: m5tab5.gpio.set
+    risk: unknown_R1_to_R3
+    availability: disabled_pending_hardware_and_attached_function_validation
+    arguments:
+      channel: validated_channel_identifier
+      value: hardware_bounded_value
+    result: observed_output_state
+    notes: risk_depends_on_the_physical_function_not_the_GPIO_API
