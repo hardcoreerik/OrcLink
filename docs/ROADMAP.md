@@ -18,6 +18,8 @@ Validate exact hardware and runtime facts. Prove identity storage, authenticated
 
 Implement serial discovery, stable board identity, structured telemetry, approved firmware flashing, reboot/version verification, watchdog detection, and complete audit. Let M5Tab5 display/approve the run and optionally bridge one validated peripheral path.
 
+**Measured proof (2026-07-18):** the first workflow is intentionally bound to the backed-up COM17 Tab5, one approved app offset, and one SHA-256 manifest. A wrong approval was denied before serial access. The real run verified USB identity, MAC binding, authenticated on-device update display/journal, esptool hash verification, rebooted node/version identity, watchdog-free logs, and a complete JSONL audit. A generic flasher and second peripheral bridge remain out of scope until another approved ESP target exists.
+
 ## 4 — M5Tab5 edge resilience
 
 Add signed/bound offline workflow installation, bounded local execution, event deduplication, configuration revision reconciliation, credential rotation/revocation, storage pressure handling, and recovery testing.

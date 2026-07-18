@@ -1,6 +1,6 @@
 # Project Status
 
-**Status:** Phases 0 and 1 are implemented. Phase 2 has a live native M5Tab5 display/touch and authenticated direct-USB resilience proof; Wi-Fi/TLS and production key protection remain open.
+**Status:** Phases 0 and 1 are implemented. Phase 2 has a live native M5Tab5 display/touch and authenticated direct-USB resilience proof. Phase 3 has one hardware-verified, artifact-bound firmware-test workflow. Wi-Fi/TLS and production key protection remain open.
 
 ## Created
 
@@ -18,6 +18,7 @@
 - M5Tab5 firmware boots on the measured unit, renders a 1280x720 touch UI, reports structured telemetry, and preserves its stable node identity.
 - Physical-USB pairing provisions one device credential; challenge/HMAC authentication gates telemetry before the host adapter forwards it.
 - An eight-entry NVS journal preserves boot, touch, online, and degraded events, replays them after host loss, and survives an app rewrite/reboot.
+- The first firmware-test workflow binds COM17 VID/PID, target MAC, flash offset, version, and SHA-256; rejects a bad approval before device access; displays the approved run on M5Tab5; verifies the app-only flash, reboot identity/version, watchdog-free boot, and JSONL audit.
 - Empty directory structure for future Rust crates, adapters, applications, schemas, examples, and tests.
 
 ## Not yet verified
@@ -29,4 +30,4 @@
 
 ## Next gate
 
-Complete the remaining Phase 2 network and production-trust validation when credentials and an irreversible eFuse-hardening decision are available. Meanwhile, begin the narrow Phase 3 ESP32 firmware-test workflow without enabling unverified hazardous capabilities.
+Complete the remaining Phase 2 network and production-trust validation when credentials and an irreversible eFuse-hardening decision are available. Begin Phase 4 edge-resilience contracts without enabling unverified hazardous capabilities.

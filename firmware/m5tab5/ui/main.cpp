@@ -288,6 +288,21 @@ void process_command(char* command) {
     last_ping_ms = millis();
     return;
   }
+  if (strncmp(command, "PREPARE_FLASH ", 14) == 0 && authenticated) {
+    uint8_t digest[32];
+    if (!decode_hex(command + 14, digest, sizeof(digest))) {
+      Serial.println("FLASH_INVALID");
+      return;
+    }
+    draw_session_state("Approved firmware update starting", TFT_CYAN);
+    append_journal("firmware_approved");
+    Serial.print("FLASH_READY ");
+    print_hex(digest, sizeof(digest));
+    Serial.println();
+    emit_identity();
+    emit_pending_journal();
+    return;
+  }
   if (strncmp(command, "ACK ", 4) == 0 && authenticated) {
     const uint32_t sequence = strtoul(command + 4, nullptr, 10);
     if (sequence <= journal.next_sequence) acknowledge_journal(sequence);

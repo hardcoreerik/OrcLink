@@ -61,3 +61,7 @@ cargo run -p orclink-adapter-m5tab5 -- COM17
 
 The development unit stores its device credential in unencrypted NVS. This is
 adequate for the direct-USB proof, not a production protected-key claim.
+
+The first approved firmware-test workflow uses `approved-ui.json`; it refuses
+any artifact, USB identity, MAC, offset, or approval digest that differs from
+that manifest. See `docs/ESP32_FIRMWARE_TEST_WORKFLOW.md` for the exact command.

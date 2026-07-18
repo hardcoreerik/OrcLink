@@ -2207,6 +2207,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "orclink-firmware-test"
+version = "0.1.0"
+dependencies = [
+ "orclink-protocol",
+ "serde",
+ "serde_json",
+ "serialport",
+ "sha2",
+]
+
+[[package]]
 name = "orclink-protocol"
 version = "0.1.0"
 dependencies = [

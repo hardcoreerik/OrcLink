@@ -13,9 +13,9 @@ Status: native display/touch and authenticated direct-USB resilience proof verif
   M5Stack Tab5 demo configuration.
 - The original ESP-IDF serial image and the native pioarduino/M5Unified UI both
   build for the measured pre-v3 ESP32-P4 silicon. The authenticated UI build
-  uses 545,840 bytes of its 6.25 MiB app partition and 29,752 bytes of internal
+  uses 546,150 bytes of its 6.25 MiB app partition and 29,752 bytes of internal
   RAM; its flashed `firmware.bin` SHA-256 is
-  `6FFE0B137A1D84FF296DA332D9C5810AC427C85AA80B17E4448C016EADDC41C7`.
+  `EC636FFD952E7D37CCA8DF939F9C46CF1666C1F2D1041E4026A04E4ACBDBF2D6`.
 - The firmware installs an interrupt-driven USB Serial/JTAG console and emits
   protocol-v1 `hello`, `node_snapshot`, and sequenced `heartbeat` envelopes.
 - The host adapter ignores non-JSON boot diagnostics, strictly deserializes

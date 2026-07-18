@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "chip": "esp32p4",
+  "usb_vid": 12346,
+  "usb_pid": 4097,
+  "target_mac": "30:ed:a0:e2:e6:95",
+  "target_node_id": "m5tab5_30eda0e2e695",
+  "flash_offset": 65536,
+  "flash_mode": "qio",
+  "flash_frequency": "80m",
+  "flash_size": "16MB",
+  "firmware_version": "0.2.0",
+  "sha256": "EC636FFD952E7D37CCA8DF939F9C46CF1666C1F2D1041E4026A04E4ACBDBF2D6"
+}
