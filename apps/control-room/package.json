@@ -1,0 +1,12 @@
+{
+  "name": "orclink-control-room",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "check": "node --check ui/main.js",
+    "tauri": "tauri"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "2.11.4"
+  }
+}

@@ -14,6 +14,7 @@
 - Windows service mutations are default-deny behind an explicit allowlist; Ollama generation is installed-model-only and capped at 128 output tokens.
 - Live local checks exercised Windows service status, bounded Ollama generation, and immediate generation cancellation.
 - Minimal `orclinkd` owns adapter collection, persists records in SQLite, and serves loopback read APIs for snapshots, operations, and timeline.
+- Minimal Tauri Control Room reads daemon-owned node snapshots, operations, and timeline with visible online/offline state.
 - Empty directory structure for future Rust crates, adapters, applications, schemas, examples, and tests.
 
 ## Not yet verified

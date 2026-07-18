@@ -2,6 +2,7 @@
 members = [
     "adapters/host-windows",
     "adapters/ollama",
+    "apps/control-room/src-tauri",
     "crates/orclink-core",
     "crates/orclink-daemon",
     "crates/orclink-protocol",

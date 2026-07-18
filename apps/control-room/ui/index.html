@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OrcLink Control Room</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header>
+      <div>
+        <p class="eyebrow">ORCLINK</p>
+        <h1>Control Room</h1>
+      </div>
+      <div class="connection">
+        <span id="connection-dot" aria-hidden="true"></span>
+        <span id="connection" role="status" aria-live="polite">Connecting</span>
+        <button id="refresh" type="button">Refresh</button>
+      </div>
+    </header>
+    <main>
+      <section aria-labelledby="nodes-title">
+        <h2 id="nodes-title">Nodes</h2>
+        <div id="nodes" class="cards"></div>
+      </section>
+      <section aria-labelledby="operations-title">
+        <h2 id="operations-title">Operations</h2>
+        <div id="operations" class="list"></div>
+      </section>
+      <section aria-labelledby="timeline-title">
+        <h2 id="timeline-title">Timeline</h2>
+        <div id="timeline" class="list"></div>
+      </section>
+    </main>
+    <script type="module" src="main.js"></script>
+  </body>
+</html>
