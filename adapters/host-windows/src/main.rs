@@ -1,6 +1,6 @@
 use orclink_protocol::{AdapterEnvelope, MessageType, ProtocolVersion};
 use serde_json::{Value, json};
-use std::{process::Command, process::ExitCode};
+use std::{collections::HashSet, env, process::Command, process::ExitCode};
 
 fn envelope(message_type: MessageType, message_id: &str, payload: Value) -> AdapterEnvelope {
     AdapterEnvelope {
@@ -28,26 +28,104 @@ fn snapshot() -> Result<Value, String> {
     serde_json::from_slice(&output.stdout).map_err(|error| error.to_string())
 }
 
-fn run() -> Result<(), String> {
-    let records = [
+fn service_command(action: &str, name: &str, allowed: &HashSet<String>) -> Value {
+    if name.is_empty()
+        || name.len() > 128
+        || !name
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || b"._-".contains(&byte))
+    {
+        return json!({"state":"Rejected","outcome":"not_executed","error":"invalid service name"});
+    }
+    if action != "status" && !allowed.contains(name) {
+        return json!({"state":"Rejected","outcome":"not_executed","error":"service is not allowlisted"});
+    }
+
+    let script = match action {
+        "status" => {
+            "$s=Get-Service -Name $env:ORCLINK_SERVICE_NAME -ErrorAction Stop;[ordered]@{name=$s.Name;display_name=$s.DisplayName;status=[string]$s.Status}|ConvertTo-Json -Compress"
+        }
+        "start" => {
+            "Start-Service -Name $env:ORCLINK_SERVICE_NAME -ErrorAction Stop;$s=Get-Service -Name $env:ORCLINK_SERVICE_NAME;$s.WaitForStatus('Running','00:00:10');[ordered]@{name=$s.Name;status='Running'}|ConvertTo-Json -Compress"
+        }
+        "stop" => {
+            "Stop-Service -Name $env:ORCLINK_SERVICE_NAME -ErrorAction Stop;$s=Get-Service -Name $env:ORCLINK_SERVICE_NAME;$s.WaitForStatus('Stopped','00:00:10');[ordered]@{name=$s.Name;status='Stopped'}|ConvertTo-Json -Compress"
+        }
+        "restart" => {
+            "Restart-Service -Name $env:ORCLINK_SERVICE_NAME -ErrorAction Stop;$s=Get-Service -Name $env:ORCLINK_SERVICE_NAME;$s.WaitForStatus('Running','00:00:10');[ordered]@{name=$s.Name;status='Running'}|ConvertTo-Json -Compress"
+        }
+        _ => {
+            return json!({"state":"Rejected","outcome":"not_executed","error":"unknown service action"});
+        }
+    };
+    let output = Command::new("powershell.exe")
+        .args(["-NoProfile", "-NonInteractive", "-Command", script])
+        .env("ORCLINK_SERVICE_NAME", name)
+        .output();
+    match output {
+        Ok(output) if output.status.success() => {
+            match serde_json::from_slice::<Value>(&output.stdout) {
+                Ok(service) => {
+                    json!({"state":"Succeeded","outcome":"executed_verified","service":service})
+                }
+                Err(error) => {
+                    json!({"state":"Failed","outcome":"executed_unverified","error":error.to_string()})
+                }
+            }
+        }
+        Ok(output) => {
+            json!({"state":"Failed","outcome":"not_executed","error":String::from_utf8_lossy(&output.stderr).trim()})
+        }
+        Err(error) => json!({"state":"Failed","outcome":"not_executed","error":error.to_string()}),
+    }
+}
+
+fn print_record(record: &AdapterEnvelope) -> Result<(), String> {
+    println!(
+        "{}",
+        serde_json::to_string(record).map_err(|error| error.to_string())?
+    );
+    Ok(())
+}
+
+fn run_snapshot() -> Result<(), String> {
+    for record in [
         envelope(
             MessageType::Hello,
             "host_hello_01",
-            json!({"adapter":{"id":"host.windows","version":env!("CARGO_PKG_VERSION")},"features":["telemetry"],"capability_namespaces":["host"],"config_schema_version":1}),
+            json!({"adapter":{"id":"host.windows","version":env!("CARGO_PKG_VERSION")},"features":["telemetry","commands"],"capability_namespaces":["host"],"config_schema_version":1}),
         ),
         envelope(
             MessageType::NodeSnapshot,
             "host_snapshot_01",
             json!({"node_id":"host.windows.local","host":snapshot()?}),
         ),
-    ];
-    for record in records {
-        println!(
-            "{}",
-            serde_json::to_string(&record).map_err(|error| error.to_string())?
-        );
+    ] {
+        print_record(&record)?;
     }
     Ok(())
+}
+
+fn run() -> Result<(), String> {
+    let arguments = env::args().skip(1).collect::<Vec<_>>();
+    if arguments.is_empty() {
+        return run_snapshot();
+    }
+    let [command, name] = arguments.as_slice() else {
+        return Err("usage: orclink-adapter-host-windows [service-status|service-start|service-stop|service-restart NAME]".into());
+    };
+    let action = command.strip_prefix("service-").unwrap_or("");
+    let allowed = env::var("ORCLINK_HOST_SERVICE_ALLOWLIST")
+        .unwrap_or_default()
+        .split(',')
+        .filter(|name| !name.is_empty())
+        .map(str::to_owned)
+        .collect();
+    print_record(&envelope(
+        MessageType::CommandUpdate,
+        "host_command_01",
+        service_command(action, name, &allowed),
+    ))
 }
 
 fn main() -> ExitCode {
@@ -68,5 +146,12 @@ mod tests {
         assert!(snapshot["os"].as_str().unwrap().contains("Windows"));
         assert!(snapshot["process_count"].as_u64().unwrap() > 0);
         assert!(snapshot["services"].as_array().unwrap().len() >= 2);
+    }
+
+    #[test]
+    fn denies_service_mutation_without_allowlist() {
+        let result = super::service_command("restart", "Spooler", &Default::default());
+        assert_eq!(result["state"], "Rejected");
+        assert_eq!(result["outcome"], "not_executed");
     }
 }
