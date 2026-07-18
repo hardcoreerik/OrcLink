@@ -57,3 +57,5 @@ Resolve questions with links to vendor documentation, measured results, or recor
 ## Resolved
 
 - JSON Schema Draft 2020-12 is the Phase 0 contract dialect; see D-013 in `DECISIONS.md`.
+- The measured Tab5 uses ESP32-P4 v1.3 with 16 MiB flash and 32 MiB octal PSRAM; ESP-IDF with the vendor-native BSP is the Phase 2 application path. See `M5TAB5_VALIDATION_REPORT.md`.
+- The measured development unit has secure boot and flash encryption disabled, with JTAG and ROM download enabled. It cannot support a production device-identity claim without a separate hardening and key-storage proof.

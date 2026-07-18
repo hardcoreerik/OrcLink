@@ -1,3 +1,6 @@
 /target/
 node_modules/
 apps/control-room/src-tauri/gen/
+.device-backups/
+firmware/m5tab5/build/
+firmware/m5tab5/sdkconfig

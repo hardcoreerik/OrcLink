@@ -4,9 +4,9 @@
 
 **Decision:** M5Tab5 is first-class in OrcLink as both an edge node/gateway and a portable operator console.
 
-**Assumption:** the device can run an OrcLink agent or compatible application and communicate over at least one practical local transport.
+**Verified:** the target is a Tab5 with ESP32-P4 v1.3, 16 MiB flash, 32 MiB octal PSRAM, and built-in USB Serial/JTAG. A minimal ESP-IDF agent builds and flashes with hash verification, and a strict COM17 host reader is implemented.
 
-**Unknown:** exact processor, memory, storage, OS/RTOS, supported application runtimes, browser/webview availability, radios, USB modes, serial interfaces, secure key storage, display/touch characteristics, power behavior, and vendor update path. No architecture claim below depends on a specific answer without a fallback.
+**Still unverified:** application boot output after one required physical reset, display/touch runtime behavior, protected key storage, authenticated transport, durable journal behavior, power characteristics, and vendor update/recovery semantics. No architecture claim below depends on a specific answer without a fallback. Detailed evidence is in `M5TAB5_VALIDATION_REPORT.md`.
 
 ## Roles
 
@@ -106,9 +106,9 @@ The example catalog is in `schemas/examples/capabilities-m5tab5.yaml`.
 
 ## UI modes
 
-### Native application
+### Native application — selected for the platform proof
 
-Potentially best for hardware integration, offline storage, predictable full-screen behavior, and secure key access. Feasibility and toolchain are **unknown**.
+ESP-IDF with the official M5Stack board support is the evidence-backed path for hardware integration, offline storage, and predictable full-screen behavior. Secure key access and the complete UI remain unverified.
 
 ### Installed/local web application
 
@@ -122,16 +122,16 @@ Select one only after a thin proof measures startup time, touch behavior, memory
 
 ## Hardware validation checklist
 
-- [ ] Record exact model, board revision, vendor documentation, and available units.
-- [ ] Identify processor/architecture, RAM, persistent storage, and practical free resources.
-- [ ] Confirm OS/RTOS, SDK/toolchain, licensing, boot flow, and application packaging.
+- [x] Record exact model, chip revision, vendor documentation, and available unit.
+- [x] Identify processor/architecture, RAM, persistent storage, and initial app budget.
+- [x] Confirm ESP-IDF/FreeRTOS SDK and compiler path, boot partitions, and firmware packaging.
 - [ ] Confirm display resolution, orientation, touch points, gestures, brightness, and burn-in concerns.
 - [ ] Inventory Wi-Fi/Bluetooth versions and modes; measure reconnect and roaming behavior.
-- [ ] Inventory USB, UART/serial, GPIO, expansion connectors, voltage levels, and isolation needs.
+- [x] Confirm built-in USB Serial/JTAG and inventory documented external interfaces; electrical validation remains open.
 - [ ] Identify onboard sensors, buttons, speakers, LEDs, battery/power telemetry, and watchdogs.
 - [ ] Verify whether TLS, modern cipher suites, certificate validation, and random generation are practical.
 - [ ] Verify unique device identifiers and protected/private-key storage; document extraction risk.
-- [ ] Validate secure boot, signed updates, rollback/recovery, factory reset, and credential erasure.
+- [x] Record current secure-boot, flash-encryption, JTAG, and ROM-download eFuse state; production hardening remains open.
 - [ ] Measure cold boot, UI startup, idle/peak power, battery runtime, thermal behavior, and sleep/wake.
 - [ ] Test durable journal writes, wear constraints, sudden power loss, and storage-full behavior.
 - [ ] Test WebSocket or chosen session transport under packet loss, AP loss, daemon restart, and clock drift.
