@@ -1,9 +1,15 @@
 # M5Tab5 OrcLink agent
 
-This is the smallest ESP-IDF proof for the M5Stack Tab5's ESP32-P4. It emits
-OrcLink protocol-v1 `hello`, `node_snapshot`, and recurring `heartbeat` JSON
-envelopes over the built-in USB Serial/JTAG console. It intentionally exposes
-only read-only device information and health capabilities.
+This directory contains two narrow M5Stack Tab5 proofs:
+
+- The ESP-IDF agent emits OrcLink protocol-v1 `hello`, `node_snapshot`, and
+  recurring `heartbeat` envelopes over USB Serial/JTAG.
+- The `m5tab5_ui` PlatformIO environment adds the 1280x720 display and GT911
+  touch path using the M5Unified/M5GFX initialization proven in NEONDRIVE.
+
+The UI build deliberately leaves display and touch autodetection to
+`M5.begin()`, calls `M5.update()` once per loop, and assigns display rotation
+only once. Do not add manual GT911 or PI4IOE reset sequences.
 
 ## Build and flash
 
@@ -29,3 +35,19 @@ The host reader defaults to COM17 and can be given another port explicitly:
 ```powershell
 cargo run -p orclink-adapter-m5tab5 -- COM17
 ```
+
+## Display and touch proof
+
+The UI environment pins pioarduino 55.03.38-1, Arduino 3.3.8, M5Unified
+0.2.15, and M5GFX 0.2.21. Its pre-build patch preserves the I2C bus across
+M5GFX autodetection on ESP-IDF 5.5.
+
+```powershell
+pio run -e m5tab5_ui
+pio run -e m5tab5_ui -t upload --upload-port COM17
+```
+
+PlatformIO must run on Python 3.10 through 3.13 for this pioarduino release.
+After flashing, reset the device if it remains in download mode. A successful
+touch on the on-screen button emits an `operator_touch` protocol event with
+the mapped display coordinates.
