@@ -1,6 +1,6 @@
 # Project Status
 
-**Status:** Phases 0 through 8 have narrow implementation proofs, and Phase 11 has a read-only repository proof. Phases 9 and 10 are explicitly deferred. M5Tab5, firmware-test, RTL-SDR, and Meshtastic paths have live hardware evidence; Moonraker and BrightSign lack identified live targets.
+**Status:** Phases 0 through 8 have narrow implementation proofs. Phases 9 and 10 are explicitly deferred. M5Tab5, firmware-test, RTL-SDR, and Meshtastic paths have live hardware evidence; Moonraker lacks an identified live target.
 
 ## Created
 
@@ -24,7 +24,6 @@
 - The Moonraker adapter exposes only read-only server, printer, object-list, and selected object-status queries; its default local endpoint refused connection.
 - The RTL-SDR adapter reserves device 0, checks storage, supports scheduled bounded CU8 capture, hashes exact artifacts, verifies provenance before decode, and invokes an explicit SatDump pipeline under a timeout. A real V4 capture and signal-unverified decoder smoke completed.
 - The receive-only Meshtastic adapter binds COM11 by USB serial and node ID, emits health and privacy-safe hop topology, strips sensitive packet content, and exposes no transmit operation. A live Heltec V4 snapshot reported 53 known nodes.
-- The read-only BrightSign adapter supports credential-safe local DWS player information and exposes no reboot, content, deployment, or configuration operation. Its fake-player test passes; no live player was found.
 - Empty directory structure for future Rust crates, adapters, applications, schemas, examples, and tests.
 
 ## Not yet verified
@@ -37,8 +36,7 @@
 - No live Meshtastic packet arrived during the bounded listener, so actual packet-event ingestion remains unobserved.
 - No DMX interface or lighting fixture has been identified for Phase 9.
 - Phase 9 DMX and Phase 10 laser work are deferred by operator direction, not complete.
-- No BrightSign target or enabled local DWS endpoint was identified; live Phase 11 validation was also deferred by operator direction.
 
 ## Next gate
 
-There is no active hardware gate after the operator-directed deferrals. Resume Phase 9 with a named DMX interface and safe fixture, Phase 10 only with independently verified physical safeguards, or live Phase 11 with an identified player and enabled local DWS. Consequential BrightSign operations still require successful live read-only identity/status first.
+There is no active hardware gate after the operator-directed deferrals. Resume Phase 9 with a named DMX interface and safe fixture, Phase 10 only with independently verified physical safeguards, or add a broader integration only when an identified target exposes a concrete need.

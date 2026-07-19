@@ -62,10 +62,6 @@ Only after hardware interlocks, emergency stop, scan/output protections, regulat
 
 **Deferred (2026-07-19):** no laser controller, independent interlock, emergency stop, or scan-failure protection was identified, and the operator directed OrcLink to skip this phase. Laser output remains absent and default-denied.
 
-## 11 — BrightSign and broader integrations
+## 11 — Broader integrations
 
-Add content/status/deployment operations using the established adapter and audit model. Consider a third-party SDK or marketplace only after multiple external adapters expose a real need.
-
-**Repo proof (2026-07-19):** `orclink-adapter-brightsign` implements only the authenticated local DWS `GET /api/v1/info/` read path. It projects serial, model, firmware, uptime, and connection type; digest credentials remain in environment variables and URL credentials are rejected. A fake-player test and clippy pass. No BrightSign target was discoverable and the bounded localhost probe was refused, so live authentication/status and every content, deployment, reboot, or configuration operation remain unverified and absent.
-
-**Live target deferred (2026-07-19):** the operator directed OrcLink to skip BrightSign player validation. The read-only repository proof remains; no live or consequential-operation claim is made.
+Add new integrations using the established adapter and audit model only when an identified target exposes a concrete need. Consider a third-party SDK or marketplace only after multiple external adapters expose repeated requirements.

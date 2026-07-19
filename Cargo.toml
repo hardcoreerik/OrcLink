@@ -1,7 +1,6 @@
 [workspace]
 members = [
     "adapters/host-windows",
-    "adapters/brightsign",
     "adapters/m5tab5",
     "adapters/moonraker",
     "adapters/ollama",

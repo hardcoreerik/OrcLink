@@ -1,8 +1,0 @@
-[package]
-name = "orclink-adapter-brightsign"
-version = "0.1.0"
-edition = "2024"
-
-[dependencies]
-orclink-protocol = { path = "../../crates/orclink-protocol" }
-serde_json = "1"

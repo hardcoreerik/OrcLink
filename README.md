@@ -30,7 +30,7 @@ Hardware-specific M5Tab5 details are not yet verified. The architecture does not
 
 - A universal device ontology or public adapter marketplace.
 - Cloud accounts, remote Internet exposure, or autonomous AI control.
-- SDR sample processing, Meshtastic parsing, DMX timing, laser output, or BrightSign control.
+- SDR sample processing, Meshtastic parsing, DMX timing, or laser output.
 - Replacing physical interlocks, emergency stops, or device-native safety systems.
 - Committing to a native or web M5Tab5 UI before platform validation.
 
