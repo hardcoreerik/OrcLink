@@ -42,6 +42,8 @@ Begin with live status and alerts on test hardware. Add consequential commands i
 
 Add device reservation, scheduled capture, artifact identity, storage checks, decoder invocation, and provenance. Signal-processing code remains outside core unless measurements justify otherwise.
 
+**Measured proof (2026-07-19):** an official RTL-SDR.COM V4 on NEWCOREPC enumerated as RTL2832U serial `77771111153705700` with an R828D tuner. The Windows adapter uses a named device mutex, checks output-volume space, accepts an optional scheduled start, independently enforces an exact CU8 byte bound, and records tuning/timing/device/SHA-256 provenance. A real 100 MHz capture produced exactly 4,800,000 bytes with SHA-256 `4C2EF64DF132BD8EA0CB64F412ECE9B0D32122157237BFBFF8D05B6FC9C71946`. SatDump 1.2.2 completed an explicitly selected `noaa_apt` pipeline against the artifact; because this was not a NOAA pass, that proves bounded invocation rather than valid signal reception. Automatic pipeline selection, calibrated reception, and successful over-the-air decoding remain later evidence gates.
+
 ## 8 — Meshtastic
 
 Add paired node identity, packet/event ingestion, health, route visualization, privacy controls, and later tightly constrained transmit profiles subject to legal/safety review.

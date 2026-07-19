@@ -4,6 +4,7 @@ members = [
     "adapters/m5tab5",
     "adapters/moonraker",
     "adapters/ollama",
+    "adapters/rtl-sdr",
     "apps/control-room/src-tauri",
     "crates/orclink-core",
     "crates/orclink-daemon",
