@@ -2,6 +2,7 @@
 members = [
     "adapters/host-windows",
     "adapters/m5tab5",
+    "adapters/moonraker",
     "adapters/ollama",
     "apps/control-room/src-tauri",
     "crates/orclink-core",

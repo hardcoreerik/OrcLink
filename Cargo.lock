@@ -2173,6 +2173,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "orclink-adapter-moonraker"
+version = "0.1.0"
+dependencies = [
+ "orclink-protocol",
+ "serde_json",
+ "ureq",
+]
+
+[[package]]
 name = "orclink-adapter-ollama"
 version = "0.1.0"
 dependencies = [

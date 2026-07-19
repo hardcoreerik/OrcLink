@@ -36,6 +36,8 @@ Add deterministic conditions, bounded retries, cleanup, and approval gates. Expo
 
 Begin with live status and alerts on test hardware. Add consequential commands individually after native safeguards, approvals, uncertain-result reconciliation, and command verification are proven.
 
+**Repo proof (2026-07-18):** `orclink-adapter-moonraker` implements only the official read surfaces `/server/info`, `/printer/info`, `/printer/objects/list`, and `/printer/objects/query`. It advertises only `klipper.status.read` and `klipper.temperature.read`, and queries supported objects only when the printer reports them loaded. Focused tests and clippy pass. The default local endpoint `127.0.0.1:7125` refused connection, so live printer state, alerts, authentication, and all consequential operations remain blocked on an identified test printer.
+
 ## 7 — SDR and SatDump
 
 Add device reservation, scheduled capture, artifact identity, storage checks, decoder invocation, and provenance. Signal-processing code remains outside core unless measurements justify otherwise.
