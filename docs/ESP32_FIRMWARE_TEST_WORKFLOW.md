@@ -21,7 +21,7 @@ The authenticated M5Tab5 session receives the approved digest first, displays
 the digest. Host approval remains authoritative; the display cannot broaden it.
 
 After esptool verifies the write and resets the board, the workflow runs the
-adapter once, verifies node `m5tab5_30eda0e2e695` and firmware `0.5.2`, waits
+adapter once, verifies node `m5tab5_30eda0e2e695` and firmware `0.6.1`, waits
 for journal acknowledgements, and rejects boot output containing watchdog,
 panic, abort, or Guru Meditation markers. Every gate is appended to an ignored
 `.orclink/firmware-test-<timestamp>.jsonl` audit.
@@ -35,7 +35,7 @@ cargo build -p orclink-adapter-m5tab5 -p orclink-firmware-test
 target\debug\orclink-firmware-test.exe `
   firmware\m5tab5\approved-ui.json `
   firmware\m5tab5\.pio\build\m5tab5_ui\firmware.bin `
-  COM17 --approve 722B5F04C67DE4BC6F6182889C745BD49237EB6D28F0682644F9397185ACA935
+  COM17 --approve 1840080439787255D2592FA78EB6673057AABBB1D8EE86C9F0526CF5E641881D
 ```
 
 ## Live result
@@ -44,10 +44,10 @@ The bad-approval check exited before serial discovery. The approved hardware
 run completed these audit stages: `artifact_hash`, `approval`,
 `serial_discovery`, `device_update_display`, `stable_identity`,
 `target_binding`, `flash`, and `reboot_verify`.
-The verified 0.5.2 run is recorded at
-`.orclink/firmware-test-1784435904.jsonl`. Its post-settle snapshot reported
-ESP-Hosted station readiness, sixteen visible networks, and explicit
-`configured=false`/`connected=false` state without joining one.
+The verified 0.6.1 run is recorded at
+`.orclink/firmware-test-1784436265.jsonl`. Its post-settle snapshot reported
+ESP-Hosted station readiness, explicit unconfigured/disconnected state, and
+read-only battery telemetry with unknown PMIC/charging support.
 
 Skipped: bootloader/partition mutation, arbitrary artifacts, auto-approval,
 and a second peripheral bridge. Add them only for a separately identified,

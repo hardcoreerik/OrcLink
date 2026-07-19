@@ -4,7 +4,7 @@
 
 **Decision:** M5Tab5 is first-class in OrcLink as both an edge node/gateway and a portable operator console.
 
-**Verified:** the target is a Tab5 with ESP32-P4 v1.3, 16 MiB flash, 32 MiB octal PSRAM, built-in USB Serial/JTAG, a 1280x720 display, working GT911 touch, and an ESP32-C6 ESP-Hosted station interface that can inventory nearby networks without blocking USB auth. A native M5Unified UI, stable node identity, physical-USB pairing, HMAC-authenticated session, bounded NVS journal, degraded state, reconnect replay, signed bounded offline status workflow, journal-pressure recovery, and credential rotation have run on COM17.
+**Verified:** the target is a Tab5 with ESP32-P4 v1.3, 16 MiB flash, 32 MiB octal PSRAM, built-in USB Serial/JTAG, a 1280x720 display, working GT911 touch, read-only battery level/voltage/current, and an ESP32-C6 ESP-Hosted station interface that can inventory nearby networks without blocking USB auth. A native M5Unified UI, stable node identity, physical-USB pairing, HMAC-authenticated session, bounded NVS journal, degraded state, reconnect replay, signed bounded offline status workflow, journal-pressure recovery, and credential rotation have run on COM17.
 
 **Still unverified:** the authenticated Wi-Fi provisioning path is implemented but needs an explicitly supplied network credential for association and reboot-persistence proof. TLS transport, AP loss/roaming, production-protected key storage, sudden-power-loss/storage-full journal behavior, power characteristics, and vendor update/recovery semantics also remain open. The measured development unit has no secure boot or flash encryption, so its NVS credentials are extractable. Detailed evidence is in `M5TAB5_VALIDATION_REPORT.md`.
 
@@ -128,7 +128,7 @@ Select one only after a thin proof measures startup time, touch behavior, memory
 - [x] Confirm 1280x720 landscape display, mapped touch points, and native drawing; gesture, brightness, accessibility, and burn-in measurement remain open.
 - [x] Inventory ESP-Hosted Wi-Fi station versions/mode and passive scan behavior; Bluetooth, reconnect, and roaming remain open.
 - [x] Confirm built-in USB Serial/JTAG and inventory documented external interfaces; electrical validation remains open.
-- [ ] Identify onboard sensors, buttons, speakers, LEDs, battery/power telemetry, and watchdogs.
+- [ ] Battery level/voltage/current telemetry is verified; PMIC identity, VBUS/charging detection, other sensors, buttons, speakers, LEDs, and watchdog behavior remain open.
 - [ ] Verify TLS, modern cipher suites, and certificate validation over the ESP32-C6 network path; hardware random generation and HMAC are practical.
 - [x] Verify stable MAC-derived node ID and persistent NVS pairing key; the key is extractable because secure boot and flash encryption are disabled.
 - [x] Record current secure-boot, flash-encryption, JTAG, and ROM-download eFuse state; production hardening remains open.

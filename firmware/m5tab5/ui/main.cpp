@@ -52,6 +52,7 @@ char node_id[32];
 uint64_t heartbeat_sequence = 0;
 uint32_t last_heartbeat_ms = 0;
 uint32_t last_ping_ms = 0;
+uint32_t last_power_draw_ms = 0;
 bool was_pressed = false;
 bool paired = false;
 bool authenticated = false;
@@ -111,6 +112,31 @@ void draw_wifi_state() {
   M5.Display.setTextColor(color, TFT_BLACK);
   M5.Display.setTextDatum(middle_center);
   M5.Display.drawString(message, 640, 617);
+}
+
+const char* charging_state() {
+  if (M5.Power.getType() == m5::Power_Class::pmic_unknown) return "unknown";
+  switch (M5.Power.isCharging()) {
+    case m5::Power_Class::is_charging:
+      return "charging";
+    case m5::Power_Class::is_discharging:
+      return "discharging";
+    default:
+      return "unknown";
+  }
+}
+
+void draw_power_state() {
+  char message[96];
+  const int32_t level = M5.Power.getBatteryLevel();
+  const int16_t battery_mv = M5.Power.getBatteryVoltage();
+  const int16_t vbus_mv = M5.Power.getVBUSVoltage();
+  snprintf(message, sizeof(message), "Power: %ld%%  battery %dmV  USB %dmV",
+           static_cast<long>(level), battery_mv, vbus_mv);
+  M5.Display.fillRect(200, 655, 880, 45, TFT_BLACK);
+  M5.Display.setTextColor(level >= 0 ? TFT_LIGHTGREY : TFT_ORANGE, TFT_BLACK);
+  M5.Display.setTextDatum(middle_center);
+  M5.Display.drawString(message, 640, 677);
 }
 
 void initialize_wifi() {
@@ -353,11 +379,15 @@ void emit_touch(int32_t x, int32_t y) {
 
 void emit_identity() {
   const String wifi_ip = wifi_connected ? WiFi.localIP().toString() : "0.0.0.0";
+  const int32_t battery_level = M5.Power.getBatteryLevel();
+  const int16_t battery_mv = M5.Power.getBatteryVoltage();
+  const int32_t battery_ma = M5.Power.getBatteryCurrent();
+  const int16_t vbus_mv = M5.Power.getVBUSVoltage();
   Serial.printf(
       "{\"type\":\"hello\",\"message_id\":\"m5tab5_hello_01\","
       "\"protocol_version\":{\"major\":1,\"minor\":0},"
-      "\"payload\":{\"adapter\":{\"id\":\"m5tab5.serial\",\"version\":\"0.5.2\"},"
-      "\"features\":[\"telemetry\",\"display\",\"touch\",\"authenticated_session\",\"journal\",\"network_inventory\",\"wifi_provisioning\"],"
+      "\"payload\":{\"adapter\":{\"id\":\"m5tab5.serial\",\"version\":\"0.6.1\"},"
+      "\"features\":[\"telemetry\",\"display\",\"touch\",\"authenticated_session\",\"journal\",\"network_inventory\",\"wifi_provisioning\",\"power_telemetry\"],"
       "\"capability_namespaces\":[\"m5tab5\"],\"config_schema_version\":1}}\n");
   Serial.printf(
       "{\"type\":\"node_snapshot\",\"message_id\":\"m5tab5_snapshot_%lu\","
@@ -368,18 +398,25 @@ void emit_identity() {
       "\"display\":{\"width\":%d,\"height\":%d,\"touch_ready\":%s}},"
       "\"network\":{\"transport\":\"esp_hosted_sdio\",\"station_ready\":%s,"
       "\"configured\":%s,\"scan_result\":%d,\"connected\":%s,\"ip\":\"%s\"},"
+      "\"power\":{\"source\":\"m5unified\",\"pmic_detected\":%s,\"pmic_type\":%d,"
+      "\"battery_level\":%ld,\"battery_mv\":%d,"
+      "\"battery_ma\":%ld,\"vbus_mv\":%d,\"charging\":\"%s\"},"
       "\"journal\":{\"latest_sequence\":%lu,\"acknowledged_sequence\":%lu,\"pending\":%u,\"dropped\":%lu},"
       "\"offline_workflow\":{\"id\":\"status_on_disconnect\",\"config_revision\":%lu,"
       "\"runs\":%u,\"max_runs\":%u},"
       "\"capabilities\":[\"m5tab5.device.info\",\"m5tab5.health.read\","
       "\"m5tab5.display.status\",\"m5tab5.input.touch\",\"m5tab5.event.journal.sync\","
-      "\"m5tab5.network.inventory\",\"m5tab5.network.configure\"]}}\n",
+      "\"m5tab5.network.inventory\",\"m5tab5.network.configure\","
+      "\"m5tab5.power.read\"]}}\n",
       static_cast<unsigned long>(millis()), node_id, ESP.getChipModel(),
       ESP.getChipRevision(), ESP.getChipCores(), ESP.getFlashChipSize(),
       ESP.getPsramSize(), ESP.getFreeHeap(), M5.Display.width(), M5.Display.height(),
       M5.Touch.isEnabled() ? "true" : "false",
       wifi_station_ready ? "true" : "false", wifi_configured ? "true" : "false",
       wifi_network_count, wifi_connected ? "true" : "false", wifi_ip.c_str(),
+      M5.Power.getType() == m5::Power_Class::pmic_unknown ? "false" : "true",
+      static_cast<int>(M5.Power.getType()), static_cast<long>(battery_level), battery_mv,
+      static_cast<long>(battery_ma), vbus_mv, charging_state(),
       static_cast<unsigned long>(journal.next_sequence),
       static_cast<unsigned long>(journal.acknowledged_sequence), journal.count,
       static_cast<unsigned long>(journal.dropped_events),
@@ -650,6 +687,7 @@ void setup() {
   offline_transition_handled = !paired;
   draw_session_state(paired ? "Waiting for authenticated host" : "Unpaired - USB provisioning",
                      paired ? TFT_YELLOW : TFT_ORANGE);
+  draw_power_state();
 }
 
 void loop() {
@@ -665,6 +703,10 @@ void loop() {
   was_pressed = pressed;
 
   const uint32_t now = millis();
+  if (now - last_power_draw_ms >= 10000) {
+    last_power_draw_ms = now;
+    draw_power_state();
+  }
   if (!offline_transition_handled && now - last_ping_ms > kSessionTimeoutMs) {
     authenticated = false;
     offline_transition_handled = true;

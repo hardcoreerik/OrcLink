@@ -4,7 +4,7 @@ Date: 2026-07-18
 
 Target: M5Stack Tab5 on COM17
 
-Status: native display/touch, authenticated direct-USB, bounded edge resilience, and read-only Wi-Fi inventory verified; network association/TLS and production hardening remain open
+Status: native display/touch, authenticated direct-USB, bounded edge resilience, read-only Wi-Fi inventory, and read-only battery telemetry verified; network association/TLS and production hardening remain open
 
 ## Repo-verified
 
@@ -12,10 +12,10 @@ Status: native display/touch, authenticated direct-USB, bounded edge resilience,
   minimum revision v0.1. That silicon family selection matches the official
   M5Stack Tab5 demo configuration.
 - The original ESP-IDF serial image and the native pioarduino/M5Unified UI both
-  build for the measured pre-v3 ESP32-P4 silicon. Firmware 0.5.2 uses 1,029,880
+  build for the measured pre-v3 ESP32-P4 silicon. Firmware 0.6.1 uses 1,030,986
   bytes of its 6.25 MiB app partition and 36,428 bytes of internal RAM. Its
-  1,073,840-byte `firmware.bin` SHA-256 is
-  `722B5F04C67DE4BC6F6182889C745BD49237EB6D28F0682644F9397185ACA935`.
+  1,075,200-byte `firmware.bin` SHA-256 is
+  `1840080439787255D2592FA78EB6673057AABBB1D8EE86C9F0526CF5E641881D`.
 - The firmware installs an interrupt-driven USB Serial/JTAG console and emits
   protocol-v1 `hello`, `node_snapshot`, and sequenced `heartbeat` envelopes.
 - The host adapter ignores non-JSON boot diagnostics, strictly deserializes
@@ -24,6 +24,8 @@ Status: native display/touch, authenticated direct-USB, bounded edge resilience,
 - The UI advertises device info, health, display status, touch input, journal
   synchronization, read-only network inventory, and authenticated network
   configuration. Hardware-output capabilities remain absent.
+- The `m5tab5.power.read` snapshot preserves raw M5Unified values and explicit
+  support metadata. It does not infer charger state when no PMIC is detected.
 - The host adapter persists a 32-byte credential outside the repository,
   provisions it only while the device is unpaired over direct USB, verifies a
   mutually authenticated random challenge with domain-separated HMAC-SHA256,
@@ -72,6 +74,11 @@ Status: native display/touch, authenticated direct-USB, bounded edge resilience,
   `connected=false`, `scan_result=16`, `touch_ready=true`, and 337,560 free
   heap bytes. This verifies the
   no-credential path and state reporting; association remains untested.
+- Two 0.6.x snapshots sampled battery level 45-46%, voltage 7,332-7,338 mV,
+  and current from -187 to -195 mA. M5Unified returned PMIC type 0 (unknown)
+  and VBUS -1 (unsupported), so firmware 0.6.1 reports
+  `pmic_detected=false` and `charging=unknown`. This proves battery telemetry,
+  not charging/USB-source detection or calibrated runtime estimates.
 - Physical touches produced mapped coordinates `(773,370)`, `(802,342)`,
   `(758,323)`, and `(724,358)` and were journaled with stable sequences 4-7.
 - After the host adapter was stopped for longer than the five-second lease, the
@@ -103,6 +110,9 @@ Status: native display/touch, authenticated direct-USB, bounded edge resilience,
 - The guarded 0.5.2 app-only update passed the same gates with bounded retries
   for transient USB/journal-settlement races and retained panic/watchdog
   rejection. Audit: `.orclink/firmware-test-1784435904.jsonl`.
+- The guarded 0.6.1 update passed exact artifact, USB identity, target MAC,
+  flash, reboot, version, and node checks. Audit:
+  `.orclink/firmware-test-1784436265.jsonl`.
 
 ## Authoritative platform facts
 
@@ -132,4 +142,5 @@ Full Phase 2 remains open on four explicit gates:
 - Bounded ring-pressure signaling and host acknowledgement are measured.
   Sudden-power-loss, wear, and destructive full-storage behavior remain unmeasured.
 - Power, thermal, battery, sleep/wake, and vendor recovery measurements remain
-  unmeasured.
+  unmeasured beyond the read-only battery snapshot; runtime calibration and
+  VBUS/charger-source detection remain open.

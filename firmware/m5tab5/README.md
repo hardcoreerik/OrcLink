@@ -16,6 +16,12 @@ CLK 12, CMD 13, D0-D3 11/10/9/8, and reset 15. Firmware 0.5.2 performs a
 nonblocking station-mode inventory after `M5.begin()` and exposes only the
 network count; it does not retain or emit SSIDs and does not join a network.
 
+Firmware 0.6.1 also exposes M5Unified's read-only battery telemetry in the
+authenticated snapshot and along the bottom of the display. On the measured
+unit, battery level, voltage, and current are available, but no PMIC is
+identified and VBUS voltage is unsupported. Charging state is therefore
+reported as `unknown` rather than inferred.
+
 ## Build and flash
 
 The checked-in configuration targets pre-v3 ESP32-P4 silicon, matching
