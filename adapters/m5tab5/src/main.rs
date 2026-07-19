@@ -344,6 +344,7 @@ fn run_device(
     flush_serial(&mut writer)?;
     let mut last_ping = Instant::now();
     let mut snapshot_seen = false;
+    let mut last_forwarded_sequence = 0;
     let once_deadline = Instant::now() + Duration::from_secs(15);
     loop {
         let mut line = String::new();
@@ -357,6 +358,7 @@ fn run_device(
                     .get("journal_sequence")
                     .and_then(|value| value.as_u64())
                 {
+                    last_forwarded_sequence = last_forwarded_sequence.max(sequence);
                     writeln!(writer, "ACK {sequence}").map_err(|error| error.to_string())?;
                     flush_serial(&mut writer)?;
                 }
@@ -370,14 +372,24 @@ fn run_device(
                     writeln!(writer, "PRESSURE_ACK").map_err(|error| error.to_string())?;
                     flush_serial(&mut writer)?;
                 }
-                if once
-                    && snapshot_seen
-                    && envelope
-                        .payload
-                        .get("journal_pending")
-                        .and_then(|value| value.as_u64())
-                        == Some(0)
+                let journal_pending = envelope
+                    .payload
+                    .get("journal_pending")
+                    .and_then(|value| value.as_u64())
+                    .or_else(|| {
+                        envelope
+                            .payload
+                            .get("journal")
+                            .and_then(|journal| journal.get("pending"))
+                            .and_then(|value| value.as_u64())
+                    });
+                if journal_pending.is_some_and(|pending| pending > 0) && last_forwarded_sequence > 0
                 {
+                    writeln!(writer, "ACK {last_forwarded_sequence}")
+                        .map_err(|error| error.to_string())?;
+                    flush_serial(&mut writer)?;
+                }
+                if once && snapshot_seen && journal_pending == Some(0) {
                     return Ok(());
                 }
             }
