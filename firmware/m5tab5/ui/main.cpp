@@ -3,9 +3,69 @@
 #include <Preferences.h>
 #include <WiFi.h>
 #include <esp_mac.h>
+#include <esp_intr_alloc.h>
 #include <mbedtls/md.h>
+#include <driver/usb_serial_jtag.h>
+#include <usb/usb_host.h>
 
+#include <atomic>
+#include <cstdarg>
 #include <cstring>
+
+class OrcConsole {
+ public:
+  void begin(uint32_t) {
+    if (usb_serial_jtag_is_driver_installed()) return;
+    usb_serial_jtag_driver_config_t config = {
+        .tx_buffer_size = 4096,
+        .rx_buffer_size = 1024,
+    };
+    usb_serial_jtag_driver_install(&config);
+  }
+
+  int available() {
+    if (has_pending_) return 1;
+    has_pending_ = usb_serial_jtag_read_bytes(&pending_, 1, 0) == 1;
+    return has_pending_ ? 1 : 0;
+  }
+
+  int read() {
+    if (!has_pending_) return -1;
+    has_pending_ = false;
+    return pending_;
+  }
+
+  void print(char value) { write(&value, 1); }
+  void print(const char* value) { write(value, strlen(value)); }
+  void println() { print('\n'); }
+  void println(const char* value) {
+    print(value);
+    println();
+  }
+
+  void printf(const char* format, ...) {
+    char output[2048];
+    va_list args;
+    va_start(args, format);
+    const int length = vsnprintf(output, sizeof(output), format, args);
+    va_end(args);
+    if (length > 0) write(output, min(static_cast<size_t>(length), sizeof(output) - 1));
+  }
+
+ private:
+  void write(const void* data, size_t size) {
+    usb_serial_jtag_write_bytes(data, size, pdMS_TO_TICKS(100));
+  }
+
+  uint8_t pending_ = 0;
+  bool has_pending_ = false;
+};
+
+OrcConsole orc_console;
+#ifdef Serial
+#undef Serial
+#endif
+#define Serial orc_console
 
 namespace {
 constexpr int kButtonX = 390;
@@ -70,6 +130,17 @@ bool wifi_connected = false;
 int wifi_network_count = -1;
 char wifi_ssid[33]{};
 char wifi_password[64]{};
+std::atomic<uint32_t> rtl_sdr_status_revision{0};
+uint32_t drawn_rtl_sdr_status_revision = 0;
+char rtl_sdr_status[96] = "RTL-SDR: waiting for USB-A host";
+char rtl_sdr_serial[48]{};
+char rtl_sdr_speed[8] = "none";
+uint16_t rtl_sdr_vid = 0;
+uint16_t rtl_sdr_pid = 0;
+uint8_t pending_usb_address = 0;
+usb_host_client_handle_t usb_client = nullptr;
+usb_device_handle_t rtl_sdr_device = nullptr;
+bool rtl_sdr_gone = false;
 
 void emit_identity();
 
@@ -137,6 +208,134 @@ void draw_power_state() {
   M5.Display.setTextColor(level >= 0 ? TFT_LIGHTGREY : TFT_ORANGE, TFT_BLACK);
   M5.Display.setTextDatum(middle_center);
   M5.Display.drawString(message, 640, 677);
+}
+
+void set_rtl_sdr_status(const char* status) {
+  strlcpy(rtl_sdr_status, status, sizeof(rtl_sdr_status));
+  rtl_sdr_status_revision.fetch_add(1, std::memory_order_release);
+}
+
+void draw_rtl_sdr_state() {
+  M5.Display.fillRect(150, 545, 980, 40, TFT_BLACK);
+  M5.Display.setTextColor(strstr(rtl_sdr_status, "ready") ? TFT_GREEN : TFT_ORANGE,
+                          TFT_BLACK);
+  M5.Display.setTextDatum(middle_center);
+  M5.Display.drawString(rtl_sdr_status, 640, 565);
+}
+
+void usb_string_to_ascii(const usb_str_desc_t* descriptor, char* output,
+                         size_t output_size) {
+  if (descriptor == nullptr || output_size == 0) {
+    if (output_size > 0) output[0] = '\0';
+    return;
+  }
+  const size_t characters = (descriptor->bLength - 2) / 2;
+  const size_t count = min(characters, output_size - 1);
+  for (size_t index = 0; index < count; ++index) {
+    const uint16_t value = descriptor->wData[index];
+    output[index] = value >= 32 && value <= 126 ? static_cast<char>(value) : '?';
+  }
+  output[count] = '\0';
+}
+
+void usb_client_event(const usb_host_client_event_msg_t* event, void*) {
+  if (event->event == USB_HOST_CLIENT_EVENT_NEW_DEV) {
+    pending_usb_address = event->new_dev.address;
+  } else if (event->event == USB_HOST_CLIENT_EVENT_DEV_GONE &&
+             event->dev_gone.dev_hdl == rtl_sdr_device) {
+    rtl_sdr_gone = true;
+  }
+}
+
+void inspect_usb_device(uint8_t address) {
+  usb_device_handle_t device = nullptr;
+  if (usb_host_device_open(usb_client, address, &device) != ESP_OK) return;
+
+  const usb_device_desc_t* descriptor = nullptr;
+  usb_device_info_t info{};
+  if (usb_host_get_device_descriptor(device, &descriptor) != ESP_OK ||
+      usb_host_device_info(device, &info) != ESP_OK) {
+    usb_host_device_close(usb_client, device);
+    return;
+  }
+
+  char product[48]{};
+  char serial[48]{};
+  usb_string_to_ascii(info.str_desc_product, product, sizeof(product));
+  usb_string_to_ascii(info.str_desc_serial_num, serial, sizeof(serial));
+  const char* speed = info.speed == USB_SPEED_HIGH ? "high" :
+                      info.speed == USB_SPEED_FULL ? "full" : "low";
+  Serial.printf("RTL_SDR_USB vid=%04x pid=%04x speed=%s product=\"%s\" serial=\"%s\"\n",
+                descriptor->idVendor, descriptor->idProduct, speed, product, serial);
+
+  if (descriptor->idVendor == 0x0bda && descriptor->idProduct == 0x2838) {
+    rtl_sdr_device = device;
+    rtl_sdr_vid = descriptor->idVendor;
+    rtl_sdr_pid = descriptor->idProduct;
+    strlcpy(rtl_sdr_speed, speed, sizeof(rtl_sdr_speed));
+    strlcpy(rtl_sdr_serial, serial, sizeof(rtl_sdr_serial));
+    char status[96];
+    snprintf(status, sizeof(status), "RTL-SDR V4 ready: %s USB, serial %s", speed, serial);
+    set_rtl_sdr_status(status);
+    Serial.println("RTL_SDR_PROBE_OK rtl2832u=true tuner=pending");
+  } else {
+    usb_host_device_close(usb_client, device);
+  }
+}
+
+void usb_host_task(void*) {
+  usb_host_config_t host_config{};
+  host_config.intr_flags = ESP_INTR_FLAG_LEVEL1;
+  host_config.peripheral_map = 0;  // ESP32-P4 default is the High-Speed controller.
+  const esp_err_t install_result = usb_host_install(&host_config);
+  if (install_result != ESP_OK) {
+    Serial.printf("RTL_SDR_HOST_ERROR install=%s\n", esp_err_to_name(install_result));
+    set_rtl_sdr_status("RTL-SDR: USB host install failed");
+    vTaskDelete(nullptr);
+  }
+
+  usb_host_client_config_t client_config{};
+  client_config.is_synchronous = false;
+  client_config.max_num_event_msg = 4;
+  client_config.async.client_event_callback = usb_client_event;
+  const esp_err_t client_result = usb_host_client_register(&client_config, &usb_client);
+  if (client_result != ESP_OK) {
+    Serial.printf("RTL_SDR_HOST_ERROR client=%s\n", esp_err_to_name(client_result));
+    set_rtl_sdr_status("RTL-SDR: USB client failed");
+    vTaskDelete(nullptr);
+  }
+  set_rtl_sdr_status("RTL-SDR: USB-A host active, waiting");
+  Serial.println("RTL_SDR_HOST_READY controller=high_speed");
+
+  while (true) {
+    uint32_t event_flags = 0;
+    usb_host_lib_handle_events(pdMS_TO_TICKS(10), &event_flags);
+    usb_host_client_handle_events(usb_client, pdMS_TO_TICKS(10));
+    if (pending_usb_address != 0) {
+      const uint8_t address = pending_usb_address;
+      pending_usb_address = 0;
+      inspect_usb_device(address);
+    }
+    if (rtl_sdr_gone) {
+      rtl_sdr_gone = false;
+      usb_host_device_close(usb_client, rtl_sdr_device);
+      rtl_sdr_device = nullptr;
+      rtl_sdr_vid = 0;
+      rtl_sdr_pid = 0;
+      strlcpy(rtl_sdr_speed, "none", sizeof(rtl_sdr_speed));
+      rtl_sdr_serial[0] = '\0';
+      set_rtl_sdr_status("RTL-SDR: disconnected");
+      Serial.println("RTL_SDR_DISCONNECTED");
+    }
+  }
+}
+
+void initialize_rtl_sdr_host() {
+  M5.Power.setExtOutput(true, m5::ext_USB);
+  set_rtl_sdr_status("RTL-SDR: USB-A power enabled");
+  if (xTaskCreate(usb_host_task, "rtl_usb_host", 6144, nullptr, 4, nullptr) != pdPASS) {
+    set_rtl_sdr_status("RTL-SDR: host task failed");
+  }
 }
 
 void initialize_wifi() {
@@ -386,8 +585,8 @@ void emit_identity() {
   Serial.printf(
       "{\"type\":\"hello\",\"message_id\":\"m5tab5_hello_01\","
       "\"protocol_version\":{\"major\":1,\"minor\":0},"
-      "\"payload\":{\"adapter\":{\"id\":\"m5tab5.serial\",\"version\":\"0.6.1\"},"
-      "\"features\":[\"telemetry\",\"display\",\"touch\",\"authenticated_session\",\"journal\",\"network_inventory\",\"wifi_provisioning\",\"power_telemetry\"],"
+      "\"payload\":{\"adapter\":{\"id\":\"m5tab5.serial\",\"version\":\"0.7.2\"},"
+      "\"features\":[\"telemetry\",\"display\",\"touch\",\"authenticated_session\",\"journal\",\"network_inventory\",\"wifi_provisioning\",\"power_telemetry\",\"usb_host\",\"rtl_sdr_probe\"],"
       "\"capability_namespaces\":[\"m5tab5\"],\"config_schema_version\":1}}\n");
   Serial.printf(
       "{\"type\":\"node_snapshot\",\"message_id\":\"m5tab5_snapshot_%lu\","
@@ -432,6 +631,12 @@ void set_online() {
 }
 
 void process_command(char* command) {
+  if (strcmp(command, "RTL_STATUS") == 0) {
+    Serial.printf("RTL_SDR_STATUS connected=%s vid=%04x pid=%04x speed=%s serial=\"%s\"\n",
+                  rtl_sdr_device != nullptr ? "true" : "false", rtl_sdr_vid,
+                  rtl_sdr_pid, rtl_sdr_speed, rtl_sdr_serial);
+    return;
+  }
   if (strncmp(command, "PAIR ", 5) == 0) {
     uint8_t candidate[sizeof(pairing_key)];
     if (!decode_hex(command + 5, candidate, sizeof(candidate))) {
@@ -670,7 +875,9 @@ void setup() {
   M5.Display.setRotation(1);
   M5.Display.setBrightness(180);
   draw_ui();
+  draw_rtl_sdr_state();
   initialize_wifi();
+  initialize_rtl_sdr_host();
 
   uint8_t mac[6];
   esp_read_mac(mac, ESP_MAC_BASE);
@@ -694,6 +901,13 @@ void loop() {
   M5.update();
   poll_serial();
   poll_wifi();
+
+  const uint32_t current_rtl_sdr_status_revision =
+      rtl_sdr_status_revision.load(std::memory_order_acquire);
+  if (drawn_rtl_sdr_status_revision != current_rtl_sdr_status_revision) {
+    drawn_rtl_sdr_status_revision = current_rtl_sdr_status_revision;
+    draw_rtl_sdr_state();
+  }
 
   const auto touch = M5.Touch.getDetail(0);
   const bool pressed = touch.isPressed() || touch.wasPressed();
