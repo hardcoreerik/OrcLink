@@ -37,8 +37,8 @@
 - No live Meshtastic packet arrived during the bounded listener, so actual packet-event ingestion remains unobserved.
 - No DMX interface or lighting fixture has been identified for Phase 9.
 - Phase 9 DMX and Phase 10 laser work are deferred by operator direction, not complete.
-- No BrightSign target or enabled local DWS endpoint has been identified for live Phase 11 validation.
+- No BrightSign target or enabled local DWS endpoint was identified; live Phase 11 validation was also deferred by operator direction.
 
 ## Next gate
 
-Identify a BrightSign test player with explicitly enabled local DWS and operator-provided digest credentials. Add consequential Phase 11 operations only one at a time after live read-only identity/status succeeds.
+There is no active hardware gate after the operator-directed deferrals. Resume Phase 9 with a named DMX interface and safe fixture, Phase 10 only with independently verified physical safeguards, or live Phase 11 with an identified player and enabled local DWS. Consequential BrightSign operations still require successful live read-only identity/status first.
