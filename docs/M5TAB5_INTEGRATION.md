@@ -4,9 +4,9 @@
 
 **Decision:** M5Tab5 is first-class in OrcLink as both an edge node/gateway and a portable operator console.
 
-**Verified:** the target is a Tab5 with ESP32-P4 v1.3, 16 MiB flash, 32 MiB octal PSRAM, built-in USB Serial/JTAG, a 1280x720 display, and working GT911 touch. A native M5Unified UI, stable node identity, physical-USB pairing, HMAC-authenticated session, bounded NVS journal, degraded state, reconnect replay, signed bounded offline status workflow, journal-pressure recovery, and credential rotation have run on COM17.
+**Verified:** the target is a Tab5 with ESP32-P4 v1.3, 16 MiB flash, 32 MiB octal PSRAM, built-in USB Serial/JTAG, a 1280x720 display, working GT911 touch, and an ESP32-C6 ESP-Hosted station interface that can inventory nearby networks without blocking USB auth. A native M5Unified UI, stable node identity, physical-USB pairing, HMAC-authenticated session, bounded NVS journal, degraded state, reconnect replay, signed bounded offline status workflow, journal-pressure recovery, and credential rotation have run on COM17.
 
-**Still unverified:** Wi-Fi/TLS transport, AP loss/roaming, production-protected key storage, sudden-power-loss/storage-full journal behavior, power characteristics, and vendor update/recovery semantics. The measured development unit has no secure boot or flash encryption, so its NVS credential is extractable. Detailed evidence is in `M5TAB5_VALIDATION_REPORT.md`.
+**Still unverified:** Wi-Fi association and TLS transport, AP loss/roaming, production-protected key storage, sudden-power-loss/storage-full journal behavior, power characteristics, and vendor update/recovery semantics. The measured development unit has no secure boot or flash encryption, so its NVS credential is extractable. Detailed evidence is in `M5TAB5_VALIDATION_REPORT.md`.
 
 ## Roles
 
@@ -126,7 +126,7 @@ Select one only after a thin proof measures startup time, touch behavior, memory
 - [x] Identify processor/architecture, RAM, persistent storage, and initial app budget.
 - [x] Confirm ESP-IDF/FreeRTOS SDK and compiler path, boot partitions, and firmware packaging.
 - [x] Confirm 1280x720 landscape display, mapped touch points, and native drawing; gesture, brightness, accessibility, and burn-in measurement remain open.
-- [ ] Inventory Wi-Fi/Bluetooth versions and modes; measure reconnect and roaming behavior.
+- [x] Inventory ESP-Hosted Wi-Fi station versions/mode and passive scan behavior; Bluetooth, reconnect, and roaming remain open.
 - [x] Confirm built-in USB Serial/JTAG and inventory documented external interfaces; electrical validation remains open.
 - [ ] Identify onboard sensors, buttons, speakers, LEDs, battery/power telemetry, and watchdogs.
 - [ ] Verify TLS, modern cipher suites, and certificate validation over the ESP32-C6 network path; hardware random generation and HMAC are practical.

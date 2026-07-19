@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include <M5Unified.h>
 #include <Preferences.h>
+#include <WiFi.h>
 #include <esp_mac.h>
 #include <mbedtls/md.h>
 
@@ -15,6 +16,13 @@ constexpr uint32_t kJournalMagic = 0x4f4a4e32;
 constexpr uint32_t kWorkflowMagic = 0x4f574631;
 constexpr size_t kJournalCapacity = 8;
 constexpr uint32_t kSessionTimeoutMs = 5000;
+constexpr int kWifiClockPin = 12;
+constexpr int kWifiCommandPin = 13;
+constexpr int kWifiData0Pin = 11;
+constexpr int kWifiData1Pin = 10;
+constexpr int kWifiData2Pin = 9;
+constexpr int kWifiData3Pin = 8;
+constexpr int kWifiResetPin = 15;
 
 struct JournalEntry {
   uint32_t sequence;
@@ -54,6 +62,11 @@ WorkflowState workflow{};
 uint8_t pairing_key[32];
 char serial_input[160];
 size_t serial_input_length = 0;
+bool wifi_station_ready = false;
+bool wifi_scan_running = false;
+int wifi_network_count = -1;
+
+void emit_identity();
 
 void draw_touch_state(const char* message, uint32_t color) {
   M5.Display.fillRect(300, 480, 680, 70, TFT_BLACK);
@@ -67,6 +80,52 @@ void draw_session_state(const char* message, uint32_t color) {
   M5.Display.setTextColor(color, TFT_BLACK);
   M5.Display.setTextDatum(middle_center);
   M5.Display.drawString(message, 640, 237);
+}
+
+void draw_wifi_state() {
+  char message[64];
+  uint32_t color = TFT_ORANGE;
+  if (!wifi_station_ready) {
+    snprintf(message, sizeof(message), "Wi-Fi inventory unavailable");
+  } else if (wifi_scan_running) {
+    snprintf(message, sizeof(message), "Wi-Fi inventory scanning");
+  } else if (wifi_network_count < 0) {
+    snprintf(message, sizeof(message), "Wi-Fi inventory failed (%d)", wifi_network_count);
+  } else {
+    snprintf(message, sizeof(message), "Wi-Fi inventory: %d network%s", wifi_network_count,
+             wifi_network_count == 1 ? "" : "s");
+    color = TFT_CYAN;
+  }
+  M5.Display.fillRect(250, 590, 780, 55, TFT_BLACK);
+  M5.Display.setTextColor(color, TFT_BLACK);
+  M5.Display.setTextDatum(middle_center);
+  M5.Display.drawString(message, 640, 617);
+}
+
+void start_wifi_inventory() {
+  delay(1500);
+  WiFi.setPins(kWifiClockPin, kWifiCommandPin, kWifiData0Pin, kWifiData1Pin,
+               kWifiData2Pin, kWifiData3Pin, kWifiResetPin);
+  wifi_station_ready = WiFi.mode(WIFI_STA);
+  if (wifi_station_ready) {
+    wifi_network_count = WiFi.scanNetworks(true, true);
+    wifi_scan_running = wifi_network_count == WIFI_SCAN_RUNNING;
+    if (!wifi_scan_running) WiFi.scanDelete();
+  }
+  draw_wifi_state();
+}
+
+void poll_wifi_inventory() {
+  if (!wifi_scan_running) return;
+  const int result = WiFi.scanComplete();
+  if (result == WIFI_SCAN_RUNNING) return;
+  wifi_scan_running = false;
+  wifi_network_count = result;
+  if (result >= 0) {
+    WiFi.scanDelete();
+  }
+  draw_wifi_state();
+  if (authenticated) emit_identity();
 }
 
 void draw_ui() {
@@ -232,8 +291,8 @@ void emit_identity() {
   Serial.printf(
       "{\"type\":\"hello\",\"message_id\":\"m5tab5_hello_01\","
       "\"protocol_version\":{\"major\":1,\"minor\":0},"
-      "\"payload\":{\"adapter\":{\"id\":\"m5tab5.serial\",\"version\":\"0.3.0\"},"
-      "\"features\":[\"telemetry\",\"display\",\"touch\",\"authenticated_session\",\"journal\"],"
+      "\"payload\":{\"adapter\":{\"id\":\"m5tab5.serial\",\"version\":\"0.4.1\"},"
+      "\"features\":[\"telemetry\",\"display\",\"touch\",\"authenticated_session\",\"journal\",\"network_inventory\"],"
       "\"capability_namespaces\":[\"m5tab5\"],\"config_schema_version\":1}}\n");
   Serial.printf(
       "{\"type\":\"node_snapshot\",\"message_id\":\"m5tab5_snapshot_%lu\","
@@ -242,15 +301,19 @@ void emit_identity() {
       "\"hardware\":{\"chip\":\"%s\",\"revision\":%u,\"cores\":%u,"
       "\"flash_bytes\":%u,\"psram_bytes\":%u,\"free_heap_bytes\":%u,"
       "\"display\":{\"width\":%d,\"height\":%d,\"touch_ready\":%s}},"
+      "\"network\":{\"transport\":\"esp_hosted_sdio\",\"station_ready\":%s,"
+      "\"scan_result\":%d,\"connected\":false},"
       "\"journal\":{\"latest_sequence\":%lu,\"acknowledged_sequence\":%lu,\"pending\":%u,\"dropped\":%lu},"
       "\"offline_workflow\":{\"id\":\"status_on_disconnect\",\"config_revision\":%lu,"
       "\"runs\":%u,\"max_runs\":%u},"
       "\"capabilities\":[\"m5tab5.device.info\",\"m5tab5.health.read\","
-      "\"m5tab5.display.status\",\"m5tab5.input.touch\",\"m5tab5.event.journal.sync\"]}}\n",
+      "\"m5tab5.display.status\",\"m5tab5.input.touch\",\"m5tab5.event.journal.sync\","
+      "\"m5tab5.network.inventory\"]}}\n",
       static_cast<unsigned long>(millis()), node_id, ESP.getChipModel(),
       ESP.getChipRevision(), ESP.getChipCores(), ESP.getFlashChipSize(),
       ESP.getPsramSize(), ESP.getFreeHeap(), M5.Display.width(), M5.Display.height(),
       M5.Touch.isEnabled() ? "true" : "false",
+      wifi_station_ready ? "true" : "false", wifi_network_count,
       static_cast<unsigned long>(journal.next_sequence),
       static_cast<unsigned long>(journal.acknowledged_sequence), journal.count,
       static_cast<unsigned long>(journal.dropped_events),
@@ -465,6 +528,7 @@ void setup() {
   M5.Display.setRotation(1);
   M5.Display.setBrightness(180);
   draw_ui();
+  start_wifi_inventory();
 
   uint8_t mac[6];
   esp_read_mac(mac, ESP_MAC_BASE);
@@ -481,6 +545,7 @@ void setup() {
 void loop() {
   M5.update();
   poll_serial();
+  poll_wifi_inventory();
 
   const auto touch = M5.Touch.getDetail(0);
   const bool pressed = touch.isPressed() || touch.wasPressed();

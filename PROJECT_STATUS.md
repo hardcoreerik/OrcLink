@@ -19,7 +19,7 @@
 - Physical-USB pairing provisions one device credential; challenge/HMAC authentication gates telemetry before the host adapter forwards it.
 - An eight-entry NVS journal preserves boot, touch, online, and degraded events, replays them after host loss, and survives an app rewrite/reboot.
 - The first firmware-test workflow binds COM17 VID/PID, target MAC, flash offset, version, and SHA-256; rejects a bad approval before device access; displays the approved run on M5Tab5; verifies the app-only flash, reboot identity/version, watchdog-free boot, and JSONL audit.
-- M5Tab5 firmware 0.3.0 proves signed bounded offline workflow installation, a three-run execution limit, journal-pressure accounting, host acknowledgement, and persistent credential rotation on the real unit.
+- M5Tab5 firmware 0.4.1 proves signed bounded offline workflow installation, a three-run execution limit, journal-pressure accounting, host acknowledgement, persistent credential rotation, and nonblocking read-only ESP-Hosted Wi-Fi inventory on the real unit.
 - The deterministic workflow executor proves bounded retries, cleanup, approval blocking, and a strict typed TheOrc proposal boundary with no arbitrary shell channel.
 - The Moonraker adapter exposes only read-only server, printer, object-list, and selected object-status queries; its default local endpoint refused connection.
 - The RTL-SDR adapter reserves device 0, checks storage, supports scheduled bounded CU8 capture, hashes exact artifacts, verifies provenance before decode, and invokes an explicit SatDump pipeline under a timeout. A real V4 capture and signal-unverified decoder smoke completed.
@@ -29,7 +29,7 @@
 ## Not yet verified
 
 - No allowlisted Windows service mutation has been selected or exercised.
-- M5Tab5 Wi-Fi/ESP-Hosted connectivity, TLS, AP roaming/loss, and daemon-over-network restart behavior are unverified.
+- M5Tab5 ESP-Hosted initialization and passive station scanning are verified; Wi-Fi association, TLS, AP roaming/loss, and daemon-over-network restart behavior are unverified.
 - The development unit stores its pairing key in unencrypted NVS; secure boot and flash encryption are disabled, so this is not production-protected identity storage.
 - Sudden-power-loss journal behavior, storage exhaustion/wear, battery/power, thermal, and production recovery remain unverified.
 - No valid over-the-air SDR signal or calibrated antenna/PPM/gain profile has been verified.

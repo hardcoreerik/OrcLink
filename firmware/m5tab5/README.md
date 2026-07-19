@@ -11,6 +11,11 @@ The UI build deliberately leaves display and touch autodetection to
 `M5.begin()`, calls `M5.update()` once per loop, and assigns display rotation
 only once. Do not add manual GT911 or PI4IOE reset sequences.
 
+The measured Tab5 ESP32-C6 Wi-Fi coprocessor uses ESP-Hosted over SDIO pins
+CLK 12, CMD 13, D0-D3 11/10/9/8, and reset 15. Firmware 0.4.1 performs a
+nonblocking station-mode inventory after `M5.begin()` and exposes only the
+network count; it does not retain or emit SSIDs and does not join a network.
+
 ## Build and flash
 
 The checked-in configuration targets pre-v3 ESP32-P4 silicon, matching
@@ -48,6 +53,8 @@ pio run -e m5tab5_ui -t upload --upload-port COM17
 ```
 
 PlatformIO must run on Python 3.10 through 3.13 for this pioarduino release.
+The platform supplies its matching ESP-P4 RISC-V toolchain; do not override it
+with PlatformIO's generic `toolchain-riscv32-esp` package.
 After flashing, reset the device if it remains in download mode. A successful
 touch on the on-screen button emits an `operator_touch` protocol event with
 the mapped display coordinates.

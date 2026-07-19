@@ -4,7 +4,7 @@ Date: 2026-07-18
 
 Target: M5Stack Tab5 on COM17
 
-Status: native display/touch, authenticated direct-USB, and bounded edge-resilience proofs verified; network and production hardening remain open
+Status: native display/touch, authenticated direct-USB, bounded edge resilience, and read-only Wi-Fi inventory verified; network association/TLS and production hardening remain open
 
 ## Repo-verified
 
@@ -12,17 +12,18 @@ Status: native display/touch, authenticated direct-USB, and bounded edge-resilie
   minimum revision v0.1. That silicon family selection matches the official
   M5Stack Tab5 demo configuration.
 - The original ESP-IDF serial image and the native pioarduino/M5Unified UI both
-  build for the measured pre-v3 ESP32-P4 silicon. Firmware 0.3.0 uses 547,972
-  bytes of its 6.25 MiB app partition and 29,768 bytes of internal RAM; its
-  flashed `firmware.bin` SHA-256 is
-  `B31F9849720A9F7A2FF857E4C69224DFCC8587EE76A64D0346C6B0711D54F432`.
+  build for the measured pre-v3 ESP32-P4 silicon. Firmware 0.4.1 uses 1,024,570
+  bytes of its 6.25 MiB app partition and 36,164 bytes of internal RAM. Its
+  1,067,504-byte `firmware.bin` SHA-256 is
+  `62F04BA61C27C122DF77B53BE15A8AB2B2AAA805EF74992C71A1040A4C3EF3BC`.
 - The firmware installs an interrupt-driven USB Serial/JTAG console and emits
   protocol-v1 `hello`, `node_snapshot`, and sequenced `heartbeat` envelopes.
 - The host adapter ignores non-JSON boot diagnostics, strictly deserializes
   adapter envelopes, rejects unsupported protocol majors, and defaults to
   COM17.
-- The UI advertises only device info, health, display status, touch input, and
-  journal synchronization. Hardware-changing capabilities remain absent.
+- The UI advertises device info, health, display status, touch input, journal
+  synchronization, and read-only network inventory. Hardware-changing
+  capabilities remain absent.
 - The host adapter persists a 32-byte credential outside the repository,
   provisions it only while the device is unpaired over direct USB, verifies a
   mutually authenticated random challenge with domain-separated HMAC-SHA256,
@@ -56,6 +57,12 @@ Status: native display/touch, authenticated direct-USB, and bounded edge-resilie
   unauthenticated `PING` produced zero JSON envelopes.
 - Runtime snapshot: 1280x720 display, `touch_ready=true`, 16 MiB flash, 32 MiB
   PSRAM, and 422,680 bytes free heap after authentication.
+- ESP-Hosted initialized the ESP32-C6 over the measured SDIO pin map and
+  reported host firmware 2.12.3 and slave firmware 2.12.6. Firmware 0.4.1
+  completed its asynchronous station-mode scan without blocking USB auth;
+  two authenticated snapshots eight seconds apart reported
+  `station_ready=true`, `scan_result=10`, `connected=false`, and about 337.8 KiB
+  free heap. SSIDs were discarded and never emitted.
 - Physical touches produced mapped coordinates `(773,370)`, `(802,342)`,
   `(758,323)`, and `(724,358)` and were journaled with stable sequences 4-7.
 - After the host adapter was stopped for longer than the five-second lease, the
@@ -81,6 +88,9 @@ Status: native display/touch, authenticated direct-USB, and bounded edge-resilie
   blank. A watchdog reset released that state, and explicitly opening the host
   adapter with DTR deasserted prevented recurrence. The guarded 0.3.0 flash then
   completed with audit `.orclink/firmware-test-1784420664.jsonl`.
+- The guarded 0.4.1 app-only update passed artifact, USB identity, target MAC,
+  flash, clean reboot, stable node ID, and exact-version verification. Audit:
+  `.orclink/firmware-test-1784435099.jsonl`.
 
 ## Authoritative platform facts
 
@@ -101,8 +111,9 @@ UI choice is therefore evidence-backed.
 
 Full Phase 2 remains open on four explicit gates:
 
-- ESP32-C6 Wi-Fi association and TLS/certificate validation need network
-  credentials and AP/daemon loss testing.
+- Wi-Fi coprocessor initialization and passive inventory are proven. Association
+  and TLS/certificate validation still need network credentials and AP/daemon
+  loss testing.
 - The development unit's NVS key is not protected because secure boot and flash
   encryption are disabled. Burning irreversible eFuses requires a separate
   production-hardening decision and is not part of this proof.

@@ -9,6 +9,6 @@
   "flash_mode": "qio",
   "flash_frequency": "80m",
   "flash_size": "16MB",
-  "firmware_version": "0.3.0",
-  "sha256": "B31F9849720A9F7A2FF857E4C69224DFCC8587EE76A64D0346C6B0711D54F432"
+  "firmware_version": "0.4.1",
+  "sha256": "62F04BA61C27C122DF77B53BE15A8AB2B2AAA805EF74992C71A1040A4C3EF3BC"
 }
