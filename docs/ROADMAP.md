@@ -48,6 +48,8 @@ Add device reservation, scheduled capture, artifact identity, storage checks, de
 
 Add paired node identity, packet/event ingestion, health, route visualization, privacy controls, and later tightly constrained transmit profiles subject to legal/safety review.
 
+**Measured proof (2026-07-19):** a Heltec V4 on COM11 is bound by USB serial `44:1B:F6:70:A2:24` and Meshtastic node ID `!f670a224`, not by COM number alone. The receive-only sidecar emits local health and a 53-node hop/SNR topology while omitting names by default and always excluding positions, keys, message text, and payload bytes. Wrong identity was rejected, the sanitizer self-test passed, and a 30-second live listener completed without transmitting or changing configuration. No packet arrived during that window, so live packet-event ingestion remains unobserved. Transmit capabilities remain absent pending a separate legal/safety gate.
+
 ## 9 — DMX and lighting
 
 Add scene/state control and validated timing outside the daemon's general workflow loop. M5Tab5 can provide portable manual controls with explicit connection and safety state.

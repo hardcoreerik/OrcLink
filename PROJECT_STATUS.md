@@ -1,6 +1,6 @@
 # Project Status
 
-**Status:** Phases 0 through 7 have narrow implementation proofs. M5Tab5, firmware-test, and RTL-SDR paths have live hardware evidence; Moonraker remains repo-tested but lacks an identified live printer. Wi-Fi/TLS and production key protection remain open.
+**Status:** Phases 0 through 8 have narrow implementation proofs. M5Tab5, firmware-test, RTL-SDR, and Meshtastic paths have live hardware evidence; Moonraker remains repo-tested but lacks an identified live printer. Wi-Fi/TLS and production key protection remain open.
 
 ## Created
 
@@ -23,6 +23,7 @@
 - The deterministic workflow executor proves bounded retries, cleanup, approval blocking, and a strict typed TheOrc proposal boundary with no arbitrary shell channel.
 - The Moonraker adapter exposes only read-only server, printer, object-list, and selected object-status queries; its default local endpoint refused connection.
 - The RTL-SDR adapter reserves device 0, checks storage, supports scheduled bounded CU8 capture, hashes exact artifacts, verifies provenance before decode, and invokes an explicit SatDump pipeline under a timeout. A real V4 capture and signal-unverified decoder smoke completed.
+- The receive-only Meshtastic adapter binds COM11 by USB serial and node ID, emits health and privacy-safe hop topology, strips sensitive packet content, and exposes no transmit operation. A live Heltec V4 snapshot reported 53 known nodes.
 - Empty directory structure for future Rust crates, adapters, applications, schemas, examples, and tests.
 
 ## Not yet verified
@@ -32,8 +33,9 @@
 - The development unit stores its pairing key in unencrypted NVS; secure boot and flash encryption are disabled, so this is not production-protected identity storage.
 - Sudden-power-loss journal behavior, storage exhaustion/wear, battery/power, thermal, and production recovery remain unverified.
 - No valid over-the-air SDR signal or calibrated antenna/PPM/gain profile has been verified.
-- No Meshtastic device has been identified for Phase 8.
+- No live Meshtastic packet arrived during the bounded listener, so actual packet-event ingestion remains unobserved.
+- No DMX interface or lighting fixture has been identified for Phase 9.
 
 ## Next gate
 
-Identify a test Meshtastic node for the Phase 8 receive-only identity, packet-ingestion, health, route, and privacy gate. Keep transmit disabled pending separate legal and safety review.
+Identify a DMX interface and non-hazardous lighting fixture for Phase 9 timing and scene-control validation. Keep laser control disabled until independent physical interlocks and emergency-stop evidence exist.
