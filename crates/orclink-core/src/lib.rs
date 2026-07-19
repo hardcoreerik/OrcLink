@@ -2,6 +2,82 @@ use rusqlite::{Connection, OptionalExtension, params};
 use std::{collections::HashMap, path::Path};
 
 #[derive(Clone, Copy)]
+pub enum StepCondition {
+    Always,
+    PreviousSucceeded,
+}
+
+pub struct WorkflowStep<'a> {
+    pub name: &'a str,
+    pub condition: StepCondition,
+    pub approval_required: bool,
+    pub max_attempts: u8,
+    pub cleanup: Option<&'a str>,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct StepResult {
+    pub name: String,
+    pub attempts: u8,
+    pub state: String,
+    pub cleanup_state: Option<String>,
+}
+
+pub fn run_workflow(
+    steps: &[WorkflowStep<'_>],
+    approval_granted: bool,
+    mut invoke: impl FnMut(&str, u8) -> Result<(), String>,
+) -> Vec<StepResult> {
+    let mut previous_succeeded = true;
+    steps
+        .iter()
+        .map(|step| {
+            if matches!(step.condition, StepCondition::PreviousSucceeded) && !previous_succeeded {
+                return StepResult {
+                    name: step.name.into(),
+                    attempts: 0,
+                    state: "Skipped".into(),
+                    cleanup_state: None,
+                };
+            }
+            if step.approval_required && !approval_granted {
+                previous_succeeded = false;
+                return StepResult {
+                    name: step.name.into(),
+                    attempts: 0,
+                    state: "ApprovalRequired".into(),
+                    cleanup_state: None,
+                };
+            }
+            let mut attempts = 0;
+            let mut succeeded = false;
+            for attempt in 1..=step.max_attempts {
+                attempts = attempt;
+                if invoke(step.name, attempt).is_ok() {
+                    succeeded = true;
+                    break;
+                }
+            }
+            previous_succeeded = succeeded;
+            let cleanup_state = if !succeeded {
+                step.cleanup.map(|cleanup| match invoke(cleanup, 1) {
+                    Ok(()) => "Succeeded".into(),
+                    Err(_) => "Failed".into(),
+                })
+            } else {
+                None
+            };
+            StepResult {
+                name: step.name.into(),
+                attempts,
+                state: if succeeded { "Succeeded" } else { "Failed" }.into(),
+                cleanup_state,
+            }
+        })
+        .collect()
+}
+
+#[derive(Clone, Copy)]
 pub enum NodeBehavior {
     Online,
     Offline,

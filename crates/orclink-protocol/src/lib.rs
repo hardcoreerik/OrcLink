@@ -77,6 +77,20 @@ pub struct Command {
 
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
+pub struct TheOrcProposal {
+    pub schema_version: u64,
+    pub proposal_id: String,
+    pub requester_id: String,
+    pub target: Target,
+    pub capability: CapabilityRef,
+    pub arguments: Map<String, Value>,
+    pub risk: Risk,
+    pub approval_required: bool,
+    pub idempotency_key: String,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct AdapterEnvelope {
     #[serde(rename = "type")]
     pub message_type: MessageType,

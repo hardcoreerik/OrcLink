@@ -30,6 +30,8 @@ Add signed/bound offline workflow installation, bounded local execution, event d
 
 Add deterministic conditions, bounded retries, cleanup, and approval gates. Expose OrcLink capabilities to TheOrc as typed proposals. TheOrc remains a planner/client; it receives no arbitrary hardware or shell channel.
 
+**Repo proof (2026-07-18):** the core now has a sequential executor with `Always`/`PreviousSucceeded` conditions, explicit approval blocking before invocation, fixed per-step attempt bounds, failure cleanup, and dependent-step skipping. The protocol exposes a strict `TheOrcProposal` containing only a declared target, capability reference, typed JSON arguments, risk, approval requirement, and idempotency key; unknown fields such as `shell` are rejected. Focused tests prove the retry bound, cleanup, approval gate, and proposal boundary. Live TheOrc transport and persistent workflow-run storage remain future integration work rather than hidden authority expansion.
+
 ## 6 — Klipper through Moonraker
 
 Begin with live status and alerts on test hardware. Add consequential commands individually after native safeguards, approvals, uncertain-result reconciliation, and command verification are proven.
