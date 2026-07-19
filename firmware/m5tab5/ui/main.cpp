@@ -60,11 +60,15 @@ Preferences preferences;
 JournalState journal{};
 WorkflowState workflow{};
 uint8_t pairing_key[32];
-char serial_input[160];
+char serial_input[320];
 size_t serial_input_length = 0;
 bool wifi_station_ready = false;
 bool wifi_scan_running = false;
+bool wifi_configured = false;
+bool wifi_connected = false;
 int wifi_network_count = -1;
+char wifi_ssid[33]{};
+char wifi_password[64]{};
 
 void emit_identity();
 
@@ -83,10 +87,17 @@ void draw_session_state(const char* message, uint32_t color) {
 }
 
 void draw_wifi_state() {
-  char message[64];
+  char message[80];
   uint32_t color = TFT_ORANGE;
   if (!wifi_station_ready) {
-    snprintf(message, sizeof(message), "Wi-Fi inventory unavailable");
+    snprintf(message, sizeof(message), "Wi-Fi unavailable");
+  } else if (wifi_connected) {
+    snprintf(message, sizeof(message), "Wi-Fi connected: %s",
+             WiFi.localIP().toString().c_str());
+    color = TFT_GREEN;
+  } else if (wifi_configured) {
+    snprintf(message, sizeof(message), "Wi-Fi connecting");
+    color = TFT_YELLOW;
   } else if (wifi_scan_running) {
     snprintf(message, sizeof(message), "Wi-Fi inventory scanning");
   } else if (wifi_network_count < 0) {
@@ -102,30 +113,52 @@ void draw_wifi_state() {
   M5.Display.drawString(message, 640, 617);
 }
 
-void start_wifi_inventory() {
+void initialize_wifi() {
   delay(1500);
   WiFi.setPins(kWifiClockPin, kWifiCommandPin, kWifiData0Pin, kWifiData1Pin,
                kWifiData2Pin, kWifiData3Pin, kWifiResetPin);
   wifi_station_ready = WiFi.mode(WIFI_STA);
-  if (wifi_station_ready) {
-    wifi_network_count = WiFi.scanNetworks(true, true);
-    wifi_scan_running = wifi_network_count == WIFI_SCAN_RUNNING;
-    if (!wifi_scan_running) WiFi.scanDelete();
-  }
   draw_wifi_state();
 }
 
-void poll_wifi_inventory() {
-  if (!wifi_scan_running) return;
-  const int result = WiFi.scanComplete();
-  if (result == WIFI_SCAN_RUNNING) return;
-  wifi_scan_running = false;
-  wifi_network_count = result;
-  if (result >= 0) {
-    WiFi.scanDelete();
-  }
+void start_wifi_inventory() {
+  if (!wifi_station_ready || wifi_configured) return;
+  wifi_network_count = WiFi.scanNetworks(true, true);
+  wifi_scan_running = wifi_network_count == WIFI_SCAN_RUNNING;
+  if (!wifi_scan_running) WiFi.scanDelete();
   draw_wifi_state();
-  if (authenticated) emit_identity();
+}
+
+void start_wifi_connection() {
+  if (!wifi_station_ready || !wifi_configured) return;
+  if (wifi_scan_running) WiFi.scanDelete();
+  wifi_scan_running = false;
+  wifi_network_count = -1;
+  wifi_connected = false;
+  WiFi.begin(wifi_ssid, wifi_password);
+  draw_wifi_state();
+}
+
+void poll_wifi() {
+  bool state_changed = false;
+  if (wifi_scan_running) {
+    const int result = WiFi.scanComplete();
+    if (result != WIFI_SCAN_RUNNING) {
+      wifi_scan_running = false;
+      wifi_network_count = result;
+      if (result >= 0) WiFi.scanDelete();
+      state_changed = true;
+    }
+  }
+  const bool connected = WiFi.status() == WL_CONNECTED;
+  if (connected != wifi_connected) {
+    wifi_connected = connected;
+    state_changed = true;
+  }
+  if (state_changed) {
+    draw_wifi_state();
+    if (authenticated) emit_identity();
+  }
 }
 
 void draw_ui() {
@@ -165,6 +198,25 @@ bool decode_hex(const char* value, uint8_t* output, size_t output_size) {
   return true;
 }
 
+bool decode_hex_text(const char* value, char* output, size_t output_size) {
+  const size_t length = strlen(value);
+  if (length % 2 != 0 || length / 2 >= output_size) return false;
+  auto digit = [](char value) -> int {
+    if (value >= '0' && value <= '9') return value - '0';
+    if (value >= 'a' && value <= 'f') return value - 'a' + 10;
+    if (value >= 'A' && value <= 'F') return value - 'A' + 10;
+    return -1;
+  };
+  for (size_t index = 0; index < length / 2; ++index) {
+    const int high = digit(value[index * 2]);
+    const int low = digit(value[index * 2 + 1]);
+    if (high < 0 || low < 0) return false;
+    output[index] = static_cast<char>((high << 4) | low);
+  }
+  output[length / 2] = '\0';
+  return true;
+}
+
 void print_hex(const uint8_t* value, size_t size) {
   static constexpr char kHex[] = "0123456789abcdef";
   for (size_t index = 0; index < size; ++index) {
@@ -201,6 +253,18 @@ void load_state() {
     memset(&workflow, 0, sizeof(workflow));
     workflow.magic = kWorkflowMagic;
     persist_workflow();
+  }
+  const String stored_ssid = preferences.isKey("wifi_ssid")
+                                 ? preferences.getString("wifi_ssid", "")
+                                 : String();
+  const String stored_password = preferences.isKey("wifi_pass")
+                                     ? preferences.getString("wifi_pass", "")
+                                     : String();
+  wifi_configured = !stored_ssid.isEmpty() && stored_ssid.length() <= 32 &&
+                    stored_password.length() <= 63;
+  if (wifi_configured) {
+    stored_ssid.toCharArray(wifi_ssid, sizeof(wifi_ssid));
+    stored_password.toCharArray(wifi_password, sizeof(wifi_password));
   }
 }
 
@@ -288,11 +352,12 @@ void emit_touch(int32_t x, int32_t y) {
 }
 
 void emit_identity() {
+  const String wifi_ip = wifi_connected ? WiFi.localIP().toString() : "0.0.0.0";
   Serial.printf(
       "{\"type\":\"hello\",\"message_id\":\"m5tab5_hello_01\","
       "\"protocol_version\":{\"major\":1,\"minor\":0},"
-      "\"payload\":{\"adapter\":{\"id\":\"m5tab5.serial\",\"version\":\"0.4.1\"},"
-      "\"features\":[\"telemetry\",\"display\",\"touch\",\"authenticated_session\",\"journal\",\"network_inventory\"],"
+      "\"payload\":{\"adapter\":{\"id\":\"m5tab5.serial\",\"version\":\"0.5.2\"},"
+      "\"features\":[\"telemetry\",\"display\",\"touch\",\"authenticated_session\",\"journal\",\"network_inventory\",\"wifi_provisioning\"],"
       "\"capability_namespaces\":[\"m5tab5\"],\"config_schema_version\":1}}\n");
   Serial.printf(
       "{\"type\":\"node_snapshot\",\"message_id\":\"m5tab5_snapshot_%lu\","
@@ -302,18 +367,19 @@ void emit_identity() {
       "\"flash_bytes\":%u,\"psram_bytes\":%u,\"free_heap_bytes\":%u,"
       "\"display\":{\"width\":%d,\"height\":%d,\"touch_ready\":%s}},"
       "\"network\":{\"transport\":\"esp_hosted_sdio\",\"station_ready\":%s,"
-      "\"scan_result\":%d,\"connected\":false},"
+      "\"configured\":%s,\"scan_result\":%d,\"connected\":%s,\"ip\":\"%s\"},"
       "\"journal\":{\"latest_sequence\":%lu,\"acknowledged_sequence\":%lu,\"pending\":%u,\"dropped\":%lu},"
       "\"offline_workflow\":{\"id\":\"status_on_disconnect\",\"config_revision\":%lu,"
       "\"runs\":%u,\"max_runs\":%u},"
       "\"capabilities\":[\"m5tab5.device.info\",\"m5tab5.health.read\","
       "\"m5tab5.display.status\",\"m5tab5.input.touch\",\"m5tab5.event.journal.sync\","
-      "\"m5tab5.network.inventory\"]}}\n",
+      "\"m5tab5.network.inventory\",\"m5tab5.network.configure\"]}}\n",
       static_cast<unsigned long>(millis()), node_id, ESP.getChipModel(),
       ESP.getChipRevision(), ESP.getChipCores(), ESP.getFlashChipSize(),
       ESP.getPsramSize(), ESP.getFreeHeap(), M5.Display.width(), M5.Display.height(),
       M5.Touch.isEnabled() ? "true" : "false",
-      wifi_station_ready ? "true" : "false", wifi_network_count,
+      wifi_station_ready ? "true" : "false", wifi_configured ? "true" : "false",
+      wifi_network_count, wifi_connected ? "true" : "false", wifi_ip.c_str(),
       static_cast<unsigned long>(journal.next_sequence),
       static_cast<unsigned long>(journal.acknowledged_sequence), journal.count,
       static_cast<unsigned long>(journal.dropped_events),
@@ -414,6 +480,45 @@ void process_command(char* command) {
     Serial.print("FLASH_READY ");
     print_hex(digest, sizeof(digest));
     Serial.println();
+    emit_identity();
+    emit_pending_journal();
+    return;
+  }
+  if (strncmp(command, "SET_WIFI ", 9) == 0 && authenticated) {
+    char* ssid_hex = command + 9;
+    char* password_hex = strchr(ssid_hex, ' ');
+    if (password_hex == nullptr) {
+      Serial.println("WIFI_INVALID");
+      return;
+    }
+    *password_hex++ = '\0';
+    char* signature_text = strchr(password_hex, ' ');
+    if (signature_text == nullptr) {
+      Serial.println("WIFI_INVALID");
+      return;
+    }
+    *signature_text++ = '\0';
+    char candidate_ssid[sizeof(wifi_ssid)];
+    char candidate_password[sizeof(wifi_password)];
+    uint8_t signature[32];
+    char signed_value[208];
+    snprintf(signed_value, sizeof(signed_value), "wifi|%s|%s", ssid_hex, password_hex);
+    if (!decode_hex_text(ssid_hex, candidate_ssid, sizeof(candidate_ssid)) ||
+        candidate_ssid[0] == '\0' ||
+        !decode_hex_text(password_hex, candidate_password, sizeof(candidate_password)) ||
+        !decode_hex(signature_text, signature, sizeof(signature)) ||
+        !hmac_matches(signed_value, signature)) {
+      Serial.println("WIFI_INVALID");
+      return;
+    }
+    strlcpy(wifi_ssid, candidate_ssid, sizeof(wifi_ssid));
+    strlcpy(wifi_password, candidate_password, sizeof(wifi_password));
+    preferences.putString("wifi_ssid", wifi_ssid);
+    preferences.putString("wifi_pass", wifi_password);
+    wifi_configured = true;
+    append_journal("wifi_configured");
+    Serial.println("WIFI_CONFIGURED");
+    start_wifi_connection();
     emit_identity();
     emit_pending_journal();
     return;
@@ -528,13 +633,18 @@ void setup() {
   M5.Display.setRotation(1);
   M5.Display.setBrightness(180);
   draw_ui();
-  start_wifi_inventory();
+  initialize_wifi();
 
   uint8_t mac[6];
   esp_read_mac(mac, ESP_MAC_BASE);
   snprintf(node_id, sizeof(node_id), "m5tab5_%02x%02x%02x%02x%02x%02x",
            mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
   load_state();
+  if (wifi_configured) {
+    start_wifi_connection();
+  } else {
+    start_wifi_inventory();
+  }
   append_journal("boot");
   last_ping_ms = millis();
   offline_transition_handled = !paired;
@@ -545,7 +655,7 @@ void setup() {
 void loop() {
   M5.update();
   poll_serial();
-  poll_wifi_inventory();
+  poll_wifi();
 
   const auto touch = M5.Touch.getDetail(0);
   const bool pressed = touch.isPressed() || touch.wasPressed();

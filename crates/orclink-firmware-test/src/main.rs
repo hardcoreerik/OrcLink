@@ -107,7 +107,13 @@ fn command_output(mut command: Command) -> Result<Output, String> {
     if output.status.success() {
         Ok(output)
     } else {
-        Err(String::from_utf8_lossy(&output.stderr).trim().to_string())
+        Err(format!(
+            "{}\n{}",
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
+        )
+        .trim()
+        .to_string())
     }
 }
 
@@ -199,44 +205,61 @@ fn prepare_device(manifest: &Manifest, port: &str) -> Result<(), String> {
 fn verify_boot(manifest: &Manifest, port: &str) -> Result<(), String> {
     thread::sleep(std::time::Duration::from_secs(3));
     let credential = PathBuf::from(".orclink").join(format!("m5tab5-{port}.key"));
-    let output = command_output({
-        let mut command = Command::new(adapter_path()?);
-        command.arg(port).arg(credential).arg("--once");
-        command
-    })?;
-    let stdout = String::from_utf8(output.stdout).map_err(|error| error.to_string())?;
-    let stderr = String::from_utf8_lossy(&output.stderr);
-    let bad_log = format!("{stdout}\n{stderr}").to_ascii_lowercase();
-    for marker in ["watchdog", "guru meditation", "panic'ed", "abort()"] {
-        if bad_log.contains(marker) {
-            return Err(format!("post-flash log contains {marker}"));
+    let mut last_error = "post-flash adapter did not return a valid snapshot".to_string();
+    for _ in 0..3 {
+        let output = command_output({
+            let mut command = Command::new(adapter_path()?);
+            command.arg(port).arg(&credential).arg("--once");
+            command
+        });
+        let (stdout, stderr) = match output {
+            Ok(output) => (
+                String::from_utf8(output.stdout).map_err(|error| error.to_string())?,
+                String::from_utf8_lossy(&output.stderr).into_owned(),
+            ),
+            Err(error) => {
+                let bad_log = error.to_ascii_lowercase();
+                for marker in ["watchdog", "guru meditation", "panic'ed", "abort()"] {
+                    if bad_log.contains(marker) {
+                        return Err(format!("post-flash log contains {marker}"));
+                    }
+                }
+                last_error = error;
+                thread::sleep(std::time::Duration::from_secs(2));
+                continue;
+            }
+        };
+        let bad_log = format!("{stdout}\n{stderr}").to_ascii_lowercase();
+        for marker in ["watchdog", "guru meditation", "panic'ed", "abort()"] {
+            if bad_log.contains(marker) {
+                return Err(format!("post-flash log contains {marker}"));
+            }
         }
-    }
 
-    let mut version_ok = false;
-    let mut identity_ok = false;
-    for line in stdout.lines().filter(|line| line.starts_with('{')) {
-        let envelope: AdapterEnvelope =
-            serde_json::from_str(line).map_err(|error| error.to_string())?;
-        version_ok |= envelope
-            .payload
-            .get("adapter")
-            .and_then(|value| value.get("version"))
-            .and_then(|value| value.as_str())
-            == Some(manifest.firmware_version.as_str());
-        identity_ok |= envelope
-            .payload
-            .get("node_id")
-            .and_then(|value| value.as_str())
-            == Some(manifest.target_node_id.as_str());
+        let mut version_ok = false;
+        let mut identity_ok = false;
+        for line in stdout.lines().filter(|line| line.starts_with('{')) {
+            let envelope: AdapterEnvelope =
+                serde_json::from_str(line).map_err(|error| error.to_string())?;
+            version_ok |= envelope
+                .payload
+                .get("adapter")
+                .and_then(|value| value.get("version"))
+                .and_then(|value| value.as_str())
+                == Some(manifest.firmware_version.as_str());
+            identity_ok |= envelope
+                .payload
+                .get("node_id")
+                .and_then(|value| value.as_str())
+                == Some(manifest.target_node_id.as_str());
+        }
+        if version_ok && identity_ok {
+            return Ok(());
+        }
+        last_error = "post-flash snapshot did not match manifest version and node".into();
+        thread::sleep(std::time::Duration::from_secs(2));
     }
-    if !version_ok {
-        return Err("post-flash firmware version did not match manifest".into());
-    }
-    if !identity_ok {
-        return Err("post-flash node identity did not match manifest".into());
-    }
-    Ok(())
+    Err(last_error)
 }
 
 fn run() -> Result<(), String> {

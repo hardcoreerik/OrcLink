@@ -12,22 +12,26 @@ Status: native display/touch, authenticated direct-USB, bounded edge resilience,
   minimum revision v0.1. That silicon family selection matches the official
   M5Stack Tab5 demo configuration.
 - The original ESP-IDF serial image and the native pioarduino/M5Unified UI both
-  build for the measured pre-v3 ESP32-P4 silicon. Firmware 0.4.1 uses 1,024,570
-  bytes of its 6.25 MiB app partition and 36,164 bytes of internal RAM. Its
-  1,067,504-byte `firmware.bin` SHA-256 is
-  `62F04BA61C27C122DF77B53BE15A8AB2B2AAA805EF74992C71A1040A4C3EF3BC`.
+  build for the measured pre-v3 ESP32-P4 silicon. Firmware 0.5.2 uses 1,029,880
+  bytes of its 6.25 MiB app partition and 36,428 bytes of internal RAM. Its
+  1,073,840-byte `firmware.bin` SHA-256 is
+  `722B5F04C67DE4BC6F6182889C745BD49237EB6D28F0682644F9397185ACA935`.
 - The firmware installs an interrupt-driven USB Serial/JTAG console and emits
   protocol-v1 `hello`, `node_snapshot`, and sequenced `heartbeat` envelopes.
 - The host adapter ignores non-JSON boot diagnostics, strictly deserializes
   adapter envelopes, rejects unsupported protocol majors, and defaults to
   COM17.
 - The UI advertises device info, health, display status, touch input, journal
-  synchronization, and read-only network inventory. Hardware-changing
-  capabilities remain absent.
+  synchronization, read-only network inventory, and authenticated network
+  configuration. Hardware-output capabilities remain absent.
 - The host adapter persists a 32-byte credential outside the repository,
   provisions it only while the device is unpaired over direct USB, verifies a
   mutually authenticated random challenge with domain-separated HMAC-SHA256,
   and forwards no device JSON before authentication succeeds.
+- The host adapter accepts Wi-Fi credentials only from a named JSON file,
+  validates SSID/password byte bounds, hex-encodes them for serial framing, and
+  signs the configuration with the paired key. Firmware verifies that HMAC
+  before writing NVS and never emits either secret.
 - The firmware keeps an eight-entry NVS ring journal. The host acknowledges
   stable journal sequence numbers after forwarding them, reports overwritten
   records as pressure, and clears the pressure counter only after host acknowledgement.
@@ -63,6 +67,11 @@ Status: native display/touch, authenticated direct-USB, bounded edge resilience,
   two authenticated snapshots eight seconds apart reported
   `station_ready=true`, `scan_result=10`, `connected=false`, and about 337.8 KiB
   free heap. SSIDs were discarded and never emitted.
+- After the guarded 0.5.2 update, an unprovisioned authenticated snapshot
+  advertised `m5tab5.network.configure` and reported `configured=false`,
+  `connected=false`, `scan_result=16`, `touch_ready=true`, and 337,560 free
+  heap bytes. This verifies the
+  no-credential path and state reporting; association remains untested.
 - Physical touches produced mapped coordinates `(773,370)`, `(802,342)`,
   `(758,323)`, and `(724,358)` and were journaled with stable sequences 4-7.
 - After the host adapter was stopped for longer than the five-second lease, the
@@ -91,6 +100,9 @@ Status: native display/touch, authenticated direct-USB, bounded edge resilience,
 - The guarded 0.4.1 app-only update passed artifact, USB identity, target MAC,
   flash, clean reboot, stable node ID, and exact-version verification. Audit:
   `.orclink/firmware-test-1784435099.jsonl`.
+- The guarded 0.5.2 app-only update passed the same gates with bounded retries
+  for transient USB/journal-settlement races and retained panic/watchdog
+  rejection. Audit: `.orclink/firmware-test-1784435904.jsonl`.
 
 ## Authoritative platform facts
 

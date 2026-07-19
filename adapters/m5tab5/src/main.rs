@@ -132,6 +132,31 @@ fn decode_key(value: &str) -> Result<[u8; 32], String> {
         .map_err(|_| "credential must be exactly 32 bytes".into())
 }
 
+fn load_wifi_config(path: &Path) -> Result<(String, String), String> {
+    let value: serde_json::Value = serde_json::from_slice(
+        &fs::read(path).map_err(|error| format!("read {}: {error}", path.display()))?,
+    )
+    .map_err(|error| format!("parse {}: {error}", path.display()))?;
+    let ssid = value
+        .get("ssid")
+        .and_then(|value| value.as_str())
+        .ok_or("Wi-Fi config requires string field 'ssid'")?;
+    let password = value
+        .get("password")
+        .and_then(|value| value.as_str())
+        .ok_or("Wi-Fi config requires string field 'password'")?;
+    if ssid.is_empty() || ssid.len() > 32 || ssid.contains('\0') {
+        return Err("Wi-Fi SSID must be 1..32 UTF-8 bytes".into());
+    }
+    if password.len() > 63
+        || (!password.is_empty() && password.len() < 8)
+        || password.contains('\0')
+    {
+        return Err("Wi-Fi password must be empty or 8..63 UTF-8 bytes".into());
+    }
+    Ok((ssid.into(), password.into()))
+}
+
 fn read_control(reader: &mut impl BufRead, expected: &str) -> Result<String, String> {
     let deadline = Instant::now() + Duration::from_secs(30);
     loop {
@@ -217,6 +242,7 @@ fn run_device(
     once: bool,
     prepare_flash: Option<&str>,
     install_status: Option<(u32, u16)>,
+    wifi_config: Option<&(String, String)>,
     rotate_key: bool,
     test_pressure: bool,
 ) -> Result<(), String> {
@@ -254,6 +280,7 @@ fn run_device(
         {
             return Err("device confirmed a different flash digest".into());
         }
+        return Ok(());
     }
 
     if let Some((revision, max_runs)) = install_status {
@@ -266,6 +293,20 @@ fn run_device(
         .map_err(|error| error.to_string())?;
         flush_serial(&mut writer)?;
         read_control(&mut reader, &format!("WORKFLOW_OK {revision}"))?;
+    }
+
+    if let Some((ssid, password)) = wifi_config {
+        let ssid_hex = encode_hex(ssid.as_bytes());
+        let password_hex = encode_hex(password.as_bytes());
+        let value = format!("wifi|{ssid_hex}|{password_hex}");
+        writeln!(
+            writer,
+            "SET_WIFI {ssid_hex} {password_hex} {}",
+            hmac_hex(&key, value.as_bytes())?
+        )
+        .map_err(|error| error.to_string())?;
+        flush_serial(&mut writer)?;
+        read_control(&mut reader, "WIFI_CONFIGURED")?;
     }
 
     if test_pressure {
@@ -392,6 +433,16 @@ fn run() -> Result<(), String> {
             Ok((revision, max_runs))
         })
         .transpose()?;
+    let wifi_config = options
+        .iter()
+        .position(|value| value == "--provision-wifi")
+        .map(|index| {
+            let path = options
+                .get(index + 1)
+                .ok_or("--provision-wifi requires a JSON file")?;
+            load_wifi_config(Path::new(path))
+        })
+        .transpose()?;
     let rotate_key = options.iter().any(|value| value == "--rotate-key");
     let test_pressure = options.iter().any(|value| value == "--test-pressure");
     run_device(
@@ -400,6 +451,7 @@ fn run() -> Result<(), String> {
         once,
         prepare_flash,
         install_status,
+        wifi_config.as_ref(),
         rotate_key,
         test_pressure,
     )
@@ -452,5 +504,15 @@ mod tests {
         assert!(super::timeout_message(
             "The semaphore timeout period has expired."
         ));
+    }
+    #[test]
+    fn wifi_config_rejects_missing_or_oversized_values() {
+        let directory = std::env::temp_dir();
+        let path = directory.join(format!("orclink-wifi-{}.json", std::process::id()));
+        std::fs::write(&path, r#"{"ssid":"lab","password":"password"}"#).unwrap();
+        assert_eq!(super::load_wifi_config(&path).unwrap().0, "lab");
+        std::fs::write(&path, r#"{"ssid":"","password":""}"#).unwrap();
+        assert!(super::load_wifi_config(&path).is_err());
+        let _ = std::fs::remove_file(path);
     }
 }

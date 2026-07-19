@@ -6,7 +6,7 @@
 
 **Verified:** the target is a Tab5 with ESP32-P4 v1.3, 16 MiB flash, 32 MiB octal PSRAM, built-in USB Serial/JTAG, a 1280x720 display, working GT911 touch, and an ESP32-C6 ESP-Hosted station interface that can inventory nearby networks without blocking USB auth. A native M5Unified UI, stable node identity, physical-USB pairing, HMAC-authenticated session, bounded NVS journal, degraded state, reconnect replay, signed bounded offline status workflow, journal-pressure recovery, and credential rotation have run on COM17.
 
-**Still unverified:** Wi-Fi association and TLS transport, AP loss/roaming, production-protected key storage, sudden-power-loss/storage-full journal behavior, power characteristics, and vendor update/recovery semantics. The measured development unit has no secure boot or flash encryption, so its NVS credential is extractable. Detailed evidence is in `M5TAB5_VALIDATION_REPORT.md`.
+**Still unverified:** the authenticated Wi-Fi provisioning path is implemented but needs an explicitly supplied network credential for association and reboot-persistence proof. TLS transport, AP loss/roaming, production-protected key storage, sudden-power-loss/storage-full journal behavior, power characteristics, and vendor update/recovery semantics also remain open. The measured development unit has no secure boot or flash encryption, so its NVS credentials are extractable. Detailed evidence is in `M5TAB5_VALIDATION_REPORT.md`.
 
 ## Roles
 

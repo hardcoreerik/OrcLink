@@ -12,7 +12,7 @@ The UI build deliberately leaves display and touch autodetection to
 only once. Do not add manual GT911 or PI4IOE reset sequences.
 
 The measured Tab5 ESP32-C6 Wi-Fi coprocessor uses ESP-Hosted over SDIO pins
-CLK 12, CMD 13, D0-D3 11/10/9/8, and reset 15. Firmware 0.4.1 performs a
+CLK 12, CMD 13, D0-D3 11/10/9/8, and reset 15. Firmware 0.5.2 performs a
 nonblocking station-mode inventory after `M5.begin()` and exposes only the
 network count; it does not retain or emit SSIDs and does not join a network.
 
@@ -68,6 +68,24 @@ cargo run -p orclink-adapter-m5tab5 -- COM17
 
 The development unit stores its device credential in unencrypted NVS. This is
 adequate for the direct-USB proof, not a production protected-key claim.
+
+Wi-Fi provisioning uses the same authenticated USB session. Put credentials in
+an ignored local JSON file such as `.orclink/m5tab5-wifi.json`:
+
+```json
+{"ssid":"YOUR_NETWORK","password":"YOUR_PASSWORD"}
+```
+
+Then provision without placing either value on the command line:
+
+```powershell
+cargo run -p orclink-adapter-m5tab5 -- COM17 .orclink/m5tab5-COM17.key --once --provision-wifi .orclink/m5tab5-wifi.json
+```
+
+The adapter validates byte limits, hex-encodes the serial fields, and signs the
+configuration with the paired device key. The firmware persists it only after
+HMAC verification. SSID and password are never emitted, but both remain
+extractable from this development unit's unencrypted NVS.
 
 The first approved firmware-test workflow uses `approved-ui.json`; it refuses
 any artifact, USB identity, MAC, offset, or approval digest that differs from
