@@ -44,5 +44,20 @@ test: 100 MHz was not a NOAA APT pass, SatDump reported that it could not
 identify valid calibration wedges, and no received satellite signal is
 claimed.
 
-Bias-tee control, automatic gain, PPM calibration, pass prediction, antenna
-validation, and successful over-the-air decoding remain outside this slice.
+The same V4 is now connected directly to the M5Tab5 USB-A host port. Firmware
+0.7.2 enables the board's switched USB 5 V rail, installs the ESP32-P4
+High-Speed host controller, and reports the attached device without a PC-side
+RTL-SDR driver:
+
+```text
+RTL_SDR_STATUS connected=true vid=0bda pid=2838 speed=high serial="00000001"
+```
+
+The guarded app-only flash passed artifact, USB identity, target MAC, reboot,
+version, node, and watchdog/panic checks. Audit:
+`.orclink/firmware-test-1784437974.jsonl`. This proves native power and USB
+enumeration only; tuner initialization and IQ transfer remain the next gate.
+
+R828D initialization, IQ transfer, bias-tee control, automatic gain, PPM
+calibration, pass prediction, antenna validation, and successful over-the-air
+decoding remain outside this slice.

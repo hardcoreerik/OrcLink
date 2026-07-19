@@ -113,6 +113,11 @@ Status: native display/touch, authenticated direct-USB, bounded edge resilience,
 - The guarded 0.6.1 update passed exact artifact, USB identity, target MAC,
   flash, reboot, version, and node checks. Audit:
   `.orclink/firmware-test-1784436265.jsonl`.
+- Firmware 0.7.2 replaced Arduino HWCDC with ESP-IDF's USB Serial/JTAG driver
+  so COM17 can coexist with the ESP32-P4 High-Speed host controller. The
+  guarded update passed, and the attached RTL-SDR.COM V4 reported
+  `0bda:2838`, High-Speed, serial `00000001`. Audit:
+  `.orclink/firmware-test-1784437974.jsonl`.
 
 ## Authoritative platform facts
 
