@@ -4,7 +4,7 @@ Date: 2026-07-18
 
 Target: M5Stack Tab5 on COM17
 
-Status: native display/touch and authenticated direct-USB resilience proof verified; network and production hardening remain open
+Status: native display/touch, authenticated direct-USB, and bounded edge-resilience proofs verified; network and production hardening remain open
 
 ## Repo-verified
 
@@ -12,10 +12,10 @@ Status: native display/touch and authenticated direct-USB resilience proof verif
   minimum revision v0.1. That silicon family selection matches the official
   M5Stack Tab5 demo configuration.
 - The original ESP-IDF serial image and the native pioarduino/M5Unified UI both
-  build for the measured pre-v3 ESP32-P4 silicon. The authenticated UI build
-  uses 546,150 bytes of its 6.25 MiB app partition and 29,752 bytes of internal
-  RAM; its flashed `firmware.bin` SHA-256 is
-  `EC636FFD952E7D37CCA8DF939F9C46CF1666C1F2D1041E4026A04E4ACBDBF2D6`.
+  build for the measured pre-v3 ESP32-P4 silicon. Firmware 0.3.0 uses 547,972
+  bytes of its 6.25 MiB app partition and 29,768 bytes of internal RAM; its
+  flashed `firmware.bin` SHA-256 is
+  `B31F9849720A9F7A2FF857E4C69224DFCC8587EE76A64D0346C6B0711D54F432`.
 - The firmware installs an interrupt-driven USB Serial/JTAG console and emits
   protocol-v1 `hello`, `node_snapshot`, and sequenced `heartbeat` envelopes.
 - The host adapter ignores non-JSON boot diagnostics, strictly deserializes
@@ -28,7 +28,11 @@ Status: native display/touch and authenticated direct-USB resilience proof verif
   mutually authenticated random challenge with domain-separated HMAC-SHA256,
   and forwards no device JSON before authentication succeeds.
 - The firmware keeps an eight-entry NVS ring journal. The host acknowledges
-  stable journal sequence numbers after forwarding them.
+  stable journal sequence numbers after forwarding them, reports overwritten
+  records as pressure, and clears the pressure counter only after host acknowledgement.
+- The only installed offline workflow is the built-in `status_on_disconnect`.
+  Its per-device-HMAC-signed configuration has a monotonic revision and a
+  persistent maximum run count; there is no general workflow language on-device.
 
 ## Runtime-observed
 
@@ -61,9 +65,22 @@ Status: native display/touch and authenticated direct-USB resilience proof verif
 - An app-only rewrite/reboot preserved both NVS identity and journal state.
   Reauthentication continued at record 10 (`boot`) and record 11
   (`session_online`), then cleared the pending queue.
+- Revision 1 of `status_on_disconnect` was installed with a three-run bound.
+  Three host-loss transitions produced durable `workflow_run` records and the
+  persistent run count stopped at 3/3.
+- A forced ten-record pressure test observed nine overwritten records after
+  existing pending traffic. Reconnect replayed the surviving stable sequences;
+  pressure acknowledgement produced `dropped: 0` and journal acknowledgement
+  produced `journal_pending: 0`.
+- Credential rotation replaced the host key file through a same-directory
+  temporary file, persisted the new NVS credential, journaled
+  `credential_rotated`, and reauthenticated. The prior credential then returned
+  `PAIR_LOCKED`; its temporary proof copy was deleted.
 - Built-in JTAG enumerates and can halt both HP cores. Some USB/JTAG reset-line
-  combinations still enter ROM download mode (`boot 0x204`); normal verified
-  esptool hard reset and direct serial reopen both booted the application.
+  combinations enter ROM download mode (`boot 0x204`) and leave the display
+  blank. A watchdog reset released that state, and explicitly opening the host
+  adapter with DTR deasserted prevented recurrence. The guarded 0.3.0 flash then
+  completed with audit `.orclink/firmware-test-1784420664.jsonl`.
 
 ## Authoritative platform facts
 
@@ -89,7 +106,7 @@ Full Phase 2 remains open on four explicit gates:
 - The development unit's NVS key is not protected because secure boot and flash
   encryption are disabled. Burning irreversible eFuses requires a separate
   production-hardening decision and is not part of this proof.
-- Sudden-power-loss, storage-full, wear, and journal-pressure recovery remain
-  unmeasured.
+- Bounded ring-pressure signaling and host acknowledgement are measured.
+  Sudden-power-loss, wear, and destructive full-storage behavior remain unmeasured.
 - Power, thermal, battery, sleep/wake, and vendor recovery measurements remain
   unmeasured.

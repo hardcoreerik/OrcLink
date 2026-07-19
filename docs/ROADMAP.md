@@ -24,6 +24,8 @@ Implement serial discovery, stable board identity, structured telemetry, approve
 
 Add signed/bound offline workflow installation, bounded local execution, event deduplication, configuration revision reconciliation, credential rotation/revocation, storage pressure handling, and recovery testing.
 
+**Measured proof (2026-07-18):** firmware 0.3.0 accepted a per-device-HMAC-signed `status_on_disconnect` configuration at monotonic revision 1 and rejected broader execution by enforcing a three-run NVS limit. Three real host-loss transitions journaled `workflow_run`, then stopped at the bound. Forced ring pressure reported nine dropped records; host acknowledgement cleared both pressure and pending records. Credential rotation persisted a new key, reauthenticated with it, journaled the change, and returned `PAIR_LOCKED` for the prior key. Daemon ingest deduplication is already covered by the SQLite API tests. Network partition behavior, protected device key storage, destructive power-loss, and wear testing remain explicit later hardening gates.
+
 ## 5 — Workflow engine and TheOrc integration
 
 Add deterministic conditions, bounded retries, cleanup, and approval gates. Expose OrcLink capabilities to TheOrc as typed proposals. TheOrc remains a planner/client; it receives no arbitrary hardware or shell channel.

@@ -14,15 +14,46 @@ use std::{
 
 type HmacSha256 = Hmac<Sha256>;
 
+struct TimeoutTolerantWriter<W>(W);
+
+impl<W: Write> Write for TimeoutTolerantWriter<W> {
+    fn write(&mut self, buffer: &[u8]) -> io::Result<usize> {
+        match self.0.write(buffer) {
+            Ok(written) => Ok(written),
+            Err(error) if is_timeout(&error) => Ok(buffer.len()),
+            Err(error) => Err(error),
+        }
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        match self.0.flush() {
+            Ok(()) => Ok(()),
+            Err(error) if is_timeout(&error) => Ok(()),
+            Err(error) => Err(error),
+        }
+    }
+}
+
 fn timeout_message(message: &str) -> bool {
     let message = message.to_ascii_lowercase();
-    message.contains("timed out") || message.contains("semaphore timeout")
+    message.contains("timed out")
+        || message.contains("semaphore timeout")
+        || message.contains("does not recognize the command")
 }
 
 fn is_timeout(error: &io::Error) -> bool {
     matches!(error.kind(), ErrorKind::TimedOut | ErrorKind::WouldBlock)
         || error.raw_os_error() == Some(121)
+        || error.raw_os_error() == Some(22)
         || timeout_message(&error.to_string())
+}
+
+fn flush_serial(writer: &mut impl Write) -> Result<(), String> {
+    match writer.flush() {
+        Ok(()) => Ok(()),
+        Err(error) if is_timeout(&error) => Ok(()),
+        Err(error) => Err(error.to_string()),
+    }
 }
 
 fn encode_hex(bytes: &[u8]) -> String {
@@ -75,6 +106,26 @@ fn load_or_create_key(path: &Path) -> Result<[u8; 32], String> {
     Ok(key)
 }
 
+fn replace_key(path: &Path, key: &[u8; 32]) -> Result<(), String> {
+    let temporary = path.with_extension("key.new");
+    let mut file = OpenOptions::new()
+        .write(true)
+        .create(true)
+        .truncate(true)
+        .open(&temporary)
+        .map_err(|error| format!("create {}: {error}", temporary.display()))?;
+    file.write_all(encode_hex(key).as_bytes())
+        .and_then(|()| file.sync_all())
+        .map_err(|error| format!("write {}: {error}", temporary.display()))?;
+    fs::rename(&temporary, path).map_err(|error| format!("replace {}: {error}", path.display()))
+}
+
+fn hmac_hex(key: &[u8; 32], value: &[u8]) -> Result<String, String> {
+    let mut signature = HmacSha256::new_from_slice(key).map_err(|error| error.to_string())?;
+    signature.update(value);
+    Ok(encode_hex(&signature.finalize().into_bytes()))
+}
+
 fn decode_key(value: &str) -> Result<[u8; 32], String> {
     decode_hex(value)?
         .try_into()
@@ -105,7 +156,7 @@ fn authenticate(
     key: &[u8; 32],
 ) -> Result<(), String> {
     writeln!(writer, "PAIR {}", encode_hex(key)).map_err(|error| error.to_string())?;
-    writer.flush().map_err(|error| error.to_string())?;
+    flush_serial(writer)?;
     read_control(reader, "PAIR_OK")?;
 
     let mut nonce = [0; 16];
@@ -120,7 +171,7 @@ fn authenticate(
         encode_hex(&proof.finalize().into_bytes())
     )
     .map_err(|error| error.to_string())?;
-    writer.flush().map_err(|error| error.to_string())?;
+    flush_serial(writer)?;
     let response = read_control(reader, "AUTH_OK ")?;
     let signature = decode_hex(response.trim_start_matches("AUTH_OK "))?;
     let mut verifier = HmacSha256::new_from_slice(key).map_err(|error| error.to_string())?;
@@ -165,11 +216,15 @@ fn run_device(
     credential: &Path,
     once: bool,
     prepare_flash: Option<&str>,
+    install_status: Option<(u32, u16)>,
+    rotate_key: bool,
+    test_pressure: bool,
 ) -> Result<(), String> {
     let open_deadline = Instant::now() + Duration::from_secs(8);
     let port = loop {
         match serialport::new(port_name, 115_200)
             .timeout(Duration::from_millis(250))
+            .dtr_on_open(false)
             .open()
         {
             Ok(port) => break port,
@@ -181,9 +236,9 @@ fn run_device(
     };
     port.clear(ClearBuffer::Input)
         .map_err(|error| format!("clear {port_name}: {error}"))?;
-    let mut writer = port.try_clone().map_err(|error| error.to_string())?;
+    let mut writer = TimeoutTolerantWriter(port.try_clone().map_err(|error| error.to_string())?);
     let mut reader = BufReader::new(port);
-    let key = load_or_create_key(credential)?;
+    let mut key = load_or_create_key(credential)?;
     authenticate(&mut reader, &mut writer, &key)?;
 
     if let Some(digest) = prepare_flash {
@@ -191,7 +246,7 @@ fn run_device(
             return Err("flash digest must be exactly 32 bytes".into());
         }
         writeln!(writer, "PREPARE_FLASH {digest}").map_err(|error| error.to_string())?;
-        writer.flush().map_err(|error| error.to_string())?;
+        flush_serial(&mut writer)?;
         let response = read_control(&mut reader, "FLASH_READY ")?;
         if !response
             .trim_start_matches("FLASH_READY ")
@@ -201,8 +256,51 @@ fn run_device(
         }
     }
 
+    if let Some((revision, max_runs)) = install_status {
+        let value = format!("workflow|{revision}|{max_runs}");
+        writeln!(
+            writer,
+            "INSTALL_STATUS {revision} {max_runs} {}",
+            hmac_hex(&key, value.as_bytes())?
+        )
+        .map_err(|error| error.to_string())?;
+        flush_serial(&mut writer)?;
+        read_control(&mut reader, &format!("WORKFLOW_OK {revision}"))?;
+    }
+
+    if test_pressure {
+        writeln!(writer, "TEST_PRESSURE").map_err(|error| error.to_string())?;
+        flush_serial(&mut writer)?;
+        let response = read_control(&mut reader, "PRESSURE_OK ")?;
+        let dropped = response
+            .trim_start_matches("PRESSURE_OK ")
+            .parse::<u32>()
+            .map_err(|_| "device returned an invalid pressure count".to_string())?;
+        if dropped == 0 {
+            return Err("journal pressure test did not drop any records".into());
+        }
+    }
+
+    if rotate_key {
+        let mut replacement = [0; 32];
+        getrandom::fill(&mut replacement).map_err(|error| error.to_string())?;
+        let replacement_hex = encode_hex(&replacement);
+        let value = format!("rotate|{replacement_hex}");
+        writeln!(
+            writer,
+            "ROTATE_KEY {replacement_hex} {}",
+            hmac_hex(&key, value.as_bytes())?
+        )
+        .map_err(|error| error.to_string())?;
+        flush_serial(&mut writer)?;
+        read_control(&mut reader, "KEY_ROTATED")?;
+        replace_key(credential, &replacement)?;
+        key = replacement;
+        authenticate(&mut reader, &mut writer, &key)?;
+    }
+
     writeln!(writer, "PING").map_err(|error| error.to_string())?;
-    writer.flush().map_err(|error| error.to_string())?;
+    flush_serial(&mut writer)?;
     let mut last_ping = Instant::now();
     let mut snapshot_seen = false;
     let once_deadline = Instant::now() + Duration::from_secs(15);
@@ -219,7 +317,17 @@ fn run_device(
                     .and_then(|value| value.as_u64())
                 {
                     writeln!(writer, "ACK {sequence}").map_err(|error| error.to_string())?;
-                    writer.flush().map_err(|error| error.to_string())?;
+                    flush_serial(&mut writer)?;
+                }
+                if envelope
+                    .payload
+                    .get("journal")
+                    .and_then(|journal| journal.get("dropped"))
+                    .and_then(|value| value.as_u64())
+                    .is_some_and(|value| value > 0)
+                {
+                    writeln!(writer, "PRESSURE_ACK").map_err(|error| error.to_string())?;
+                    flush_serial(&mut writer)?;
                 }
                 if once
                     && snapshot_seen
@@ -238,7 +346,7 @@ fn run_device(
         }
         if last_ping.elapsed() >= Duration::from_secs(1) {
             writeln!(writer, "PING").map_err(|error| error.to_string())?;
-            writer.flush().map_err(|error| error.to_string())?;
+            flush_serial(&mut writer)?;
             last_ping = Instant::now();
         }
         if once && Instant::now() >= once_deadline {
@@ -264,7 +372,37 @@ fn run() -> Result<(), String> {
         .position(|value| value == "--prepare-flash")
         .and_then(|index| options.get(index + 1))
         .map(String::as_str);
-    run_device(&argument, &credential, once, prepare_flash)
+    let install_status = options
+        .iter()
+        .position(|value| value == "--install-status")
+        .map(|index| {
+            let revision = options
+                .get(index + 1)
+                .ok_or("--install-status requires REVISION MAX_RUNS")?
+                .parse::<u32>()
+                .map_err(|_| "workflow revision must be an integer")?;
+            let max_runs = options
+                .get(index + 2)
+                .ok_or("--install-status requires REVISION MAX_RUNS")?
+                .parse::<u16>()
+                .map_err(|_| "workflow max runs must be 1..65535")?;
+            if revision == 0 || max_runs == 0 {
+                return Err("workflow revision and max runs must be nonzero");
+            }
+            Ok((revision, max_runs))
+        })
+        .transpose()?;
+    let rotate_key = options.iter().any(|value| value == "--rotate-key");
+    let test_pressure = options.iter().any(|value| value == "--test-pressure");
+    run_device(
+        &argument,
+        &credential,
+        once,
+        prepare_flash,
+        install_status,
+        rotate_key,
+        test_pressure,
+    )
 }
 
 fn main() -> ExitCode {

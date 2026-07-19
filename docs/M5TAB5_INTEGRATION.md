@@ -4,7 +4,7 @@
 
 **Decision:** M5Tab5 is first-class in OrcLink as both an edge node/gateway and a portable operator console.
 
-**Verified:** the target is a Tab5 with ESP32-P4 v1.3, 16 MiB flash, 32 MiB octal PSRAM, built-in USB Serial/JTAG, a 1280x720 display, and working GT911 touch. A native M5Unified UI, stable node identity, physical-USB pairing, HMAC-authenticated session, bounded NVS journal, degraded state, and reconnect replay have run on COM17.
+**Verified:** the target is a Tab5 with ESP32-P4 v1.3, 16 MiB flash, 32 MiB octal PSRAM, built-in USB Serial/JTAG, a 1280x720 display, and working GT911 touch. A native M5Unified UI, stable node identity, physical-USB pairing, HMAC-authenticated session, bounded NVS journal, degraded state, reconnect replay, signed bounded offline status workflow, journal-pressure recovery, and credential rotation have run on COM17.
 
 **Still unverified:** Wi-Fi/TLS transport, AP loss/roaming, production-protected key storage, sudden-power-loss/storage-full journal behavior, power characteristics, and vendor update/recovery semantics. The measured development unit has no secure boot or flash encryption, so its NVS credential is extractable. Detailed evidence is in `M5TAB5_VALIDATION_REPORT.md`.
 
@@ -133,7 +133,7 @@ Select one only after a thin proof measures startup time, touch behavior, memory
 - [x] Verify stable MAC-derived node ID and persistent NVS pairing key; the key is extractable because secure boot and flash encryption are disabled.
 - [x] Record current secure-boot, flash-encryption, JTAG, and ROM-download eFuse state; production hardening remains open.
 - [ ] Measure cold boot, UI startup, idle/peak power, battery runtime, thermal behavior, and sleep/wake.
-- [ ] The bounded NVS journal survives host loss and an app rewrite/reboot; wear, sudden power loss, and storage-full behavior remain open.
+- [x] The bounded NVS journal survives host loss and an app rewrite/reboot, reports pressure, and clears pressure after host acknowledgement; wear, sudden power loss, and destructive storage-full behavior remain open.
 - [ ] Test WebSocket or chosen session transport under packet loss, AP loss, daemon restart, and clock drift.
 - [x] Select native M5Unified/M5GFX for the platform proof; browser/PWA and accessibility evaluation remain open.
 - [ ] Verify physical mounting, connector strain, ESD, and safe use around controlled equipment.

@@ -11,7 +11,8 @@ constexpr int kButtonX = 390;
 constexpr int kButtonY = 300;
 constexpr int kButtonWidth = 500;
 constexpr int kButtonHeight = 120;
-constexpr uint32_t kJournalMagic = 0x4f4a4e31;
+constexpr uint32_t kJournalMagic = 0x4f4a4e32;
+constexpr uint32_t kWorkflowMagic = 0x4f574631;
 constexpr size_t kJournalCapacity = 8;
 constexpr uint32_t kSessionTimeoutMs = 5000;
 
@@ -28,7 +29,15 @@ struct JournalState {
   uint32_t acknowledged_sequence;
   uint8_t head;
   uint8_t count;
+  uint32_t dropped_events;
   JournalEntry entries[kJournalCapacity];
+};
+
+struct WorkflowState {
+  uint32_t magic;
+  uint32_t config_revision;
+  uint16_t max_runs;
+  uint16_t runs;
 };
 
 char node_id[32];
@@ -38,8 +47,10 @@ uint32_t last_ping_ms = 0;
 bool was_pressed = false;
 bool paired = false;
 bool authenticated = false;
+bool offline_transition_handled = false;
 Preferences preferences;
 JournalState journal{};
+WorkflowState workflow{};
 uint8_t pairing_key[32];
 char serial_input[160];
 size_t serial_input_length = 0;
@@ -107,6 +118,10 @@ void persist_journal() {
   preferences.putBytes("journal", &journal, sizeof(journal));
 }
 
+void persist_workflow() {
+  preferences.putBytes("workflow", &workflow, sizeof(workflow));
+}
+
 void load_state() {
   preferences.begin("orclink", false);
   paired = preferences.getBytesLength("pair_key") == sizeof(pairing_key);
@@ -120,6 +135,14 @@ void load_state() {
     journal.magic = kJournalMagic;
     persist_journal();
   }
+  if (preferences.getBytesLength("workflow") == sizeof(workflow)) {
+    preferences.getBytes("workflow", &workflow, sizeof(workflow));
+  }
+  if (workflow.magic != kWorkflowMagic) {
+    memset(&workflow, 0, sizeof(workflow));
+    workflow.magic = kWorkflowMagic;
+    persist_workflow();
+  }
 }
 
 uint32_t append_journal(const char* kind, int16_t x = -1, int16_t y = -1) {
@@ -130,6 +153,7 @@ uint32_t append_journal(const char* kind, int16_t x = -1, int16_t y = -1) {
   } else {
     index = journal.head;
     journal.head = (journal.head + 1) % kJournalCapacity;
+    ++journal.dropped_events;
   }
   JournalEntry& entry = journal.entries[index];
   entry.sequence = ++journal.next_sequence;
@@ -139,6 +163,29 @@ uint32_t append_journal(const char* kind, int16_t x = -1, int16_t y = -1) {
   entry.y = y;
   persist_journal();
   return entry.sequence;
+}
+
+bool hmac_matches(const char* value, const uint8_t* candidate) {
+  uint8_t expected[32];
+  const mbedtls_md_info_t* info = mbedtls_md_info_from_type(MBEDTLS_MD_SHA256);
+  if (info == nullptr ||
+      mbedtls_md_hmac(info, pairing_key, sizeof(pairing_key),
+                      reinterpret_cast<const uint8_t*>(value), strlen(value), expected) != 0) {
+    return false;
+  }
+  uint8_t difference = 0;
+  for (size_t index = 0; index < sizeof(expected); ++index) {
+    difference |= expected[index] ^ candidate[index];
+  }
+  return difference == 0;
+}
+
+void run_offline_workflow() {
+  if (workflow.config_revision == 0 || workflow.runs >= workflow.max_runs) return;
+  ++workflow.runs;
+  persist_workflow();
+  draw_session_state("Host offline - local status workflow active", TFT_ORANGE);
+  append_journal("workflow_run");
 }
 
 void acknowledge_journal(uint32_t sequence) {
@@ -185,7 +232,7 @@ void emit_identity() {
   Serial.printf(
       "{\"type\":\"hello\",\"message_id\":\"m5tab5_hello_01\","
       "\"protocol_version\":{\"major\":1,\"minor\":0},"
-      "\"payload\":{\"adapter\":{\"id\":\"m5tab5.serial\",\"version\":\"0.2.0\"},"
+      "\"payload\":{\"adapter\":{\"id\":\"m5tab5.serial\",\"version\":\"0.3.0\"},"
       "\"features\":[\"telemetry\",\"display\",\"touch\",\"authenticated_session\",\"journal\"],"
       "\"capability_namespaces\":[\"m5tab5\"],\"config_schema_version\":1}}\n");
   Serial.printf(
@@ -195,7 +242,9 @@ void emit_identity() {
       "\"hardware\":{\"chip\":\"%s\",\"revision\":%u,\"cores\":%u,"
       "\"flash_bytes\":%u,\"psram_bytes\":%u,\"free_heap_bytes\":%u,"
       "\"display\":{\"width\":%d,\"height\":%d,\"touch_ready\":%s}},"
-      "\"journal\":{\"latest_sequence\":%lu,\"acknowledged_sequence\":%lu,\"pending\":%u},"
+      "\"journal\":{\"latest_sequence\":%lu,\"acknowledged_sequence\":%lu,\"pending\":%u,\"dropped\":%lu},"
+      "\"offline_workflow\":{\"id\":\"status_on_disconnect\",\"config_revision\":%lu,"
+      "\"runs\":%u,\"max_runs\":%u},"
       "\"capabilities\":[\"m5tab5.device.info\",\"m5tab5.health.read\","
       "\"m5tab5.display.status\",\"m5tab5.input.touch\",\"m5tab5.event.journal.sync\"]}}\n",
       static_cast<unsigned long>(millis()), node_id, ESP.getChipModel(),
@@ -203,7 +252,9 @@ void emit_identity() {
       ESP.getPsramSize(), ESP.getFreeHeap(), M5.Display.width(), M5.Display.height(),
       M5.Touch.isEnabled() ? "true" : "false",
       static_cast<unsigned long>(journal.next_sequence),
-      static_cast<unsigned long>(journal.acknowledged_sequence), journal.count);
+      static_cast<unsigned long>(journal.acknowledged_sequence), journal.count,
+      static_cast<unsigned long>(journal.dropped_events),
+      static_cast<unsigned long>(workflow.config_revision), workflow.runs, workflow.max_runs);
 }
 
 void set_online() {
@@ -280,6 +331,7 @@ void process_command(char* command) {
     print_hex(signature, sizeof(signature));
     Serial.println();
     authenticated = true;
+    offline_transition_handled = false;
     last_ping_ms = millis();
     set_online();
     return;
@@ -301,6 +353,88 @@ void process_command(char* command) {
     Serial.println();
     emit_identity();
     emit_pending_journal();
+    return;
+  }
+  if (strncmp(command, "INSTALL_STATUS ", 15) == 0 && authenticated) {
+    char* revision_text = command + 15;
+    char* max_runs_text = strchr(revision_text, ' ');
+    if (max_runs_text == nullptr) {
+      Serial.println("WORKFLOW_INVALID");
+      return;
+    }
+    *max_runs_text++ = '\0';
+    char* signature_text = strchr(max_runs_text, ' ');
+    if (signature_text == nullptr) {
+      Serial.println("WORKFLOW_INVALID");
+      return;
+    }
+    *signature_text++ = '\0';
+    const uint32_t revision = strtoul(revision_text, nullptr, 10);
+    const uint32_t max_runs = strtoul(max_runs_text, nullptr, 10);
+    uint8_t signature[32];
+    char signed_value[48];
+    snprintf(signed_value, sizeof(signed_value), "workflow|%lu|%lu",
+             static_cast<unsigned long>(revision), static_cast<unsigned long>(max_runs));
+    if (revision == 0 || max_runs == 0 || max_runs > UINT16_MAX ||
+        !decode_hex(signature_text, signature, sizeof(signature)) ||
+        !hmac_matches(signed_value, signature)) {
+      Serial.println("WORKFLOW_INVALID");
+      return;
+    }
+    if (revision <= workflow.config_revision) {
+      Serial.println("WORKFLOW_STALE");
+      return;
+    }
+    workflow.config_revision = revision;
+    workflow.max_runs = static_cast<uint16_t>(max_runs);
+    workflow.runs = 0;
+    persist_workflow();
+    append_journal("workflow_installed");
+    Serial.printf("WORKFLOW_OK %lu\n", static_cast<unsigned long>(revision));
+    emit_identity();
+    emit_pending_journal();
+    return;
+  }
+  if (strncmp(command, "ROTATE_KEY ", 11) == 0 && authenticated) {
+    char* key_text = command + 11;
+    char* signature_text = strchr(key_text, ' ');
+    if (signature_text == nullptr) {
+      Serial.println("ROTATE_INVALID");
+      return;
+    }
+    *signature_text++ = '\0';
+    uint8_t replacement[sizeof(pairing_key)];
+    uint8_t signature[32];
+    char signed_value[80];
+    snprintf(signed_value, sizeof(signed_value), "rotate|%s", key_text);
+    if (!decode_hex(key_text, replacement, sizeof(replacement)) ||
+        !decode_hex(signature_text, signature, sizeof(signature)) ||
+        !hmac_matches(signed_value, signature)) {
+      Serial.println("ROTATE_INVALID");
+      return;
+    }
+    memcpy(pairing_key, replacement, sizeof(pairing_key));
+    preferences.putBytes("pair_key", pairing_key, sizeof(pairing_key));
+    append_journal("credential_rotated");
+    Serial.println("KEY_ROTATED");
+    authenticated = false;
+    offline_transition_handled = false;
+    last_ping_ms = millis();
+    draw_session_state("Credential rotated - host reconnect required", TFT_YELLOW);
+    return;
+  }
+  if (strcmp(command, "TEST_PRESSURE") == 0 && authenticated) {
+    for (int index = 0; index < 10; ++index) append_journal("pressure_test");
+    Serial.printf("PRESSURE_OK %lu\n", static_cast<unsigned long>(journal.dropped_events));
+    emit_identity();
+    emit_pending_journal();
+    return;
+  }
+  if (strcmp(command, "PRESSURE_ACK") == 0 && authenticated) {
+    journal.dropped_events = 0;
+    persist_journal();
+    Serial.println("PRESSURE_CLEARED");
+    emit_identity();
     return;
   }
   if (strncmp(command, "ACK ", 4) == 0 && authenticated) {
@@ -329,6 +463,7 @@ void setup() {
   auto config = M5.config();
   M5.begin(config);
   M5.Display.setRotation(1);
+  M5.Display.setBrightness(180);
   draw_ui();
 
   uint8_t mac[6];
@@ -337,6 +472,8 @@ void setup() {
            mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
   load_state();
   append_journal("boot");
+  last_ping_ms = millis();
+  offline_transition_handled = !paired;
   draw_session_state(paired ? "Waiting for authenticated host" : "Unpaired - USB provisioning",
                      paired ? TFT_YELLOW : TFT_ORANGE);
 }
@@ -353,10 +490,12 @@ void loop() {
   was_pressed = pressed;
 
   const uint32_t now = millis();
-  if (authenticated && now - last_ping_ms > kSessionTimeoutMs) {
+  if (!offline_transition_handled && now - last_ping_ms > kSessionTimeoutMs) {
     authenticated = false;
+    offline_transition_handled = true;
     draw_session_state("Host offline - local journal active", TFT_ORANGE);
     append_journal("session_degraded");
+    run_offline_workflow();
   }
   if (authenticated && now - last_heartbeat_ms >= 2000) {
     last_heartbeat_ms = now;

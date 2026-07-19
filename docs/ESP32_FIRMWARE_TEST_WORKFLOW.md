@@ -21,7 +21,7 @@ The authenticated M5Tab5 session receives the approved digest first, displays
 the digest. Host approval remains authoritative; the display cannot broaden it.
 
 After esptool verifies the write and resets the board, the workflow runs the
-adapter once, verifies node `m5tab5_30eda0e2e695` and firmware `0.2.0`, waits
+adapter once, verifies node `m5tab5_30eda0e2e695` and firmware `0.3.0`, waits
 for journal acknowledgements, and rejects boot output containing watchdog,
 panic, abort, or Guru Meditation markers. Every gate is appended to an ignored
 `.orclink/firmware-test-<timestamp>.jsonl` audit.
@@ -35,7 +35,7 @@ cargo build -p orclink-adapter-m5tab5 -p orclink-firmware-test
 target\debug\orclink-firmware-test.exe `
   firmware\m5tab5\approved-ui.json `
   firmware\m5tab5\.pio\build\m5tab5_ui\firmware.bin `
-  COM17 --approve EC636FFD952E7D37CCA8DF939F9C46CF1666C1F2D1041E4026A04E4ACBDBF2D6
+  COM17 --approve B31F9849720A9F7A2FF857E4C69224DFCC8587EE76A64D0346C6B0711D54F432
 ```
 
 ## Live result
@@ -44,6 +44,8 @@ The bad-approval check exited before serial discovery. The approved hardware
 run completed these audit stages: `artifact_hash`, `approval`,
 `serial_discovery`, `device_update_display`, `stable_identity`,
 `target_binding`, `flash`, and `reboot_verify`.
+The verified 0.3.0 run is recorded at
+`.orclink/firmware-test-1784420664.jsonl`.
 
 Skipped: bootloader/partition mutation, arbitrary artifacts, auto-approval,
 and a second peripheral bridge. Add them only for a separately identified,
