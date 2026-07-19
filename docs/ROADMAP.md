@@ -61,3 +61,5 @@ Only after hardware interlocks, emergency stop, scan/output protections, regulat
 ## 11 — BrightSign and broader integrations
 
 Add content/status/deployment operations using the established adapter and audit model. Consider a third-party SDK or marketplace only after multiple external adapters expose a real need.
+
+**Repo proof (2026-07-19):** `orclink-adapter-brightsign` implements only the authenticated local DWS `GET /api/v1/info/` read path. It projects serial, model, firmware, uptime, and connection type; digest credentials remain in environment variables and URL credentials are rejected. A fake-player test and clippy pass. No BrightSign target was discoverable and the bounded localhost probe was refused, so live authentication/status and every content, deployment, reboot, or configuration operation remain unverified and absent.
