@@ -1,6 +1,10 @@
 use orclink_protocol::{AdapterEnvelope, MessageType, ProtocolVersion};
 use serde_json::{Map, Value, json};
-use std::{env, process::ExitCode};
+use std::{
+    env,
+    process::ExitCode,
+    time::{SystemTime, UNIX_EPOCH},
+};
 
 fn get(base_url: &str, path: &str) -> Result<Value, String> {
     ureq::get(format!("{}{path}", base_url.trim_end_matches('/')))
@@ -53,6 +57,10 @@ fn envelope(message_type: MessageType, message_id: &str, payload: Value) -> Adap
 }
 
 fn snapshot(base_url: &str) -> Result<Vec<AdapterEnvelope>, String> {
+    let run_id = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map_err(|error| error.to_string())?
+        .as_millis();
     let server = get(base_url, "/server/info")?;
     let printer = get(base_url, "/printer/info")?;
     let objects = selected_objects(&get(base_url, "/printer/objects/list")?);
@@ -64,12 +72,12 @@ fn snapshot(base_url: &str) -> Result<Vec<AdapterEnvelope>, String> {
     Ok(vec![
         envelope(
             MessageType::Hello,
-            "moonraker_hello_01",
+            &format!("moonraker_hello_{run_id}"),
             json!({"adapter":{"id":"moonraker.readonly","version":env!("CARGO_PKG_VERSION")},"features":["telemetry"],"capability_namespaces":["klipper"],"config_schema_version":1}),
         ),
         envelope(
             MessageType::NodeSnapshot,
-            "moonraker_snapshot_01",
+            &format!("moonraker_snapshot_{run_id}"),
             json!({
                 "node_id":"klipper.local",
                 "connection_state": if result(&server)["klippy_connected"] == true { "online" } else { "degraded" },

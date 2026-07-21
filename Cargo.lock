@@ -2194,10 +2194,22 @@ dependencies = [
 name = "orclink-adapter-rtl-sdr"
 version = "0.1.0"
 dependencies = [
+ "orclink-protocol",
  "serde",
  "serde_json",
  "sha2",
  "windows-sys 0.61.2",
+]
+
+[[package]]
+name = "orclink-client"
+version = "0.1.0"
+dependencies = [
+ "http",
+ "orclink-protocol",
+ "serde",
+ "serde_json",
+ "ureq",
 ]
 
 [[package]]
@@ -2243,6 +2255,16 @@ dependencies = [
  "serde",
  "serde_json",
  "time",
+]
+
+[[package]]
+name = "orclinkctl"
+version = "0.1.0"
+dependencies = [
+ "orclink-client",
+ "orclink-protocol",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

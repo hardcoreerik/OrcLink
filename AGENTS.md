@@ -23,10 +23,12 @@ The final sentence of `README.md` saying implementation has not begun is stale. 
 
 - `crates/orclink-protocol`: protocol-v1 types, validation boundary, and TheOrc proposal types.
 - `crates/orclink-core`: simulator and deterministic sequential workflow executor.
-- `crates/orclink-daemon`: daemon library/binary, SQLite-owned state, and loopback read API.
+- `crates/orclink-daemon`: daemon library/binary, SQLite-owned state, versioned loopback API, proposal admission, and Chronicle projection.
+- `crates/orclink-client`: typed, loopback-only Rust SDK for nodes, capabilities, operations, timeline, and proposals.
 - `crates/orclink-firmware-test`: tightly bound, audited firmware-test workflow.
 - `adapters/`: out-of-process integrations for Windows host, Ollama, M5Tab5, Moonraker, and RTL-SDR. Meshtastic is currently a receive-only Python sidecar.
 - `apps/control-room`: Tauri desktop client; it displays daemon-owned state and is never an authorization boundary.
+- `apps/orclinkctl`: Rust operator CLI over the same versioned daemon API used by applications.
 - `firmware/m5tab5`: ESP-IDF serial/recovery proof and the pinned PlatformIO/M5Unified touch UI proof.
 - `schemas/protocol-v1.schema.json`: authoritative Phase 0 JSON Schema contract pack.
 - `.orclink/`: local captures, credentials, audit runs, and hardware artifacts. Treat as generated/sensitive local state, not source.
@@ -65,6 +67,8 @@ The final sentence of `README.md` saying implementation has not begun is stale. 
 ## Current direction
 
 - Phases 0-8 have narrow proofs; Phases 9-10 are deferred.
+- Rust owns the public application surface. C++/C stays at the measured ESP32 firmware boundary unless a target-specific reason justifies moving it.
+- Proposal intake is implemented, but dispatch is not: `Proposed` and `ApprovalRequired` are never described as authorized or executed.
 - The active hardware gate is a bounded native IQ capture from the RTL-SDR.COM V4 attached directly to M5Tab5.
 - Keep claims narrow: native V4 USB enumeration is proven, but R828D initialization, bounded IQ transfer, calibrated reception, valid over-the-air signal, and antenna/PPM/gain profiles remain unverified unless newer measured evidence explicitly supersedes this memory.
 - When code or hardware evidence changes status, update `PROJECT_STATUS.md` and the relevant integration/roadmap documentation in the same change so claims remain synchronized.

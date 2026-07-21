@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "proposal_id": "example:host_inventory:01",
+  "requester_id": "orclinkctl.local",
+  "target": {
+    "node_id": "host.windows.local",
+    "component_id": null
+  },
+  "capability": {
+    "name": "host.inventory.read",
+    "schema_version": 1
+  },
+  "arguments": {
+    "intent": "Refresh the bounded Windows host inventory"
+  },
+  "risk": "R0",
+  "approval_required": false,
+  "idempotency_key": "example:host_inventory:01"
+}

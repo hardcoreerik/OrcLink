@@ -1,6 +1,11 @@
 use orclink_protocol::{AdapterEnvelope, MessageType, ProtocolVersion};
 use serde_json::{Value, json};
-use std::{collections::HashSet, env, process::Command, process::ExitCode};
+use std::{
+    collections::HashSet,
+    env,
+    process::{Command, ExitCode},
+    time::{SystemTime, UNIX_EPOCH},
+};
 
 fn envelope(message_type: MessageType, message_id: &str, payload: Value) -> AdapterEnvelope {
     AdapterEnvelope {
@@ -89,16 +94,32 @@ fn print_record(record: &AdapterEnvelope) -> Result<(), String> {
 }
 
 fn run_snapshot() -> Result<(), String> {
+    let run_id = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map_err(|error| error.to_string())?
+        .as_millis();
     for record in [
         envelope(
             MessageType::Hello,
-            "host_hello_01",
+            &format!("host_hello_{run_id}"),
             json!({"adapter":{"id":"host.windows","version":env!("CARGO_PKG_VERSION")},"features":["telemetry","commands"],"capability_namespaces":["host"],"config_schema_version":1}),
         ),
         envelope(
             MessageType::NodeSnapshot,
-            "host_snapshot_01",
-            json!({"node_id":"host.windows.local","host":snapshot()?}),
+            &format!("host_snapshot_{run_id}"),
+            json!({
+                "node_id":"host.windows.local",
+                "display_name":"Windows Host",
+                "connection_state":"online",
+                "host":snapshot()?,
+                "capabilities":[
+                    "host.inventory.read",
+                    "host.service.status",
+                    "host.service.start",
+                    "host.service.stop",
+                    "host.service.restart"
+                ]
+            }),
         ),
     ] {
         print_record(&record)?;

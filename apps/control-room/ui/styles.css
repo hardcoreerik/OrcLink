@@ -657,6 +657,28 @@ img { display: block; max-width: 100%; }
 #orc-form { position: relative; z-index: 1; margin-top: 18px; }
 #orc-form label { display: block; margin-bottom: 7px; color: #8f9a89; font-size: 10px; }
 
+.proposal-fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr);
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.proposal-fields label { margin: 0; }
+
+.proposal-fields select {
+  display: block;
+  width: 100%;
+  margin-top: 5px;
+  padding: 9px 28px 9px 9px;
+  border: 1px solid #354535;
+  border-radius: 3px;
+  color: var(--text);
+  background: #0f120f;
+}
+
+.proposal-fields select:disabled { color: #687064; opacity: 0.75; }
+
 #orc-request {
   display: block;
   width: 100%;
@@ -926,6 +948,7 @@ dialog > p:last-child { margin-top: 12px; color: var(--muted); font-size: 11px; 
 }
 
 @media (max-width: 820px) {
+  .proposal-fields { grid-template-columns: 1fr; }
   .app-shell { grid-template-columns: 1fr; }
   .rail { position: static; z-index: 20; display: grid; grid-template-columns: auto 1fr auto; align-items: center; width: 100%; height: auto; border-right: 0; border-bottom: 1px solid var(--border); }
   .brand { min-height: 60px; padding: 9px 12px; border: 0; }

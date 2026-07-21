@@ -16,7 +16,7 @@ pub enum Record {
     AdapterEnvelope(AdapterEnvelope),
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct Node {
     pub schema_version: u64,
@@ -28,7 +28,7 @@ pub struct Node {
     pub capabilities: Vec<CapabilityRef>,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct Event {
     pub schema_version: u64,
@@ -42,7 +42,7 @@ pub struct Event {
     pub payload: Map<String, Value>,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct Capability {
     pub schema_version: u64,
@@ -58,7 +58,7 @@ pub struct Capability {
     pub verification: Verification,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct Command {
     pub schema_version: u64,
@@ -75,7 +75,7 @@ pub struct Command {
     pub outcome: Option<Outcome>,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct TheOrcProposal {
     pub schema_version: u64,
@@ -89,7 +89,20 @@ pub struct TheOrcProposal {
     pub idempotency_key: String,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct ProposalReceipt {
+    pub proposal_id: String,
+    pub state: ProposalState,
+    pub reason: String,
+    pub risk: Risk,
+    pub approval_required: bool,
+    pub duplicate: bool,
+    pub sequence: u64,
+    pub created_at: u64,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct AdapterEnvelope {
     #[serde(rename = "type")]
@@ -101,21 +114,21 @@ pub struct AdapterEnvelope {
     pub adapter_instance_id: Option<String>,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct CapabilityRef {
     pub name: String,
     pub schema_version: u64,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct Target {
     pub node_id: String,
     pub component_id: Option<String>,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct ProtocolVersion {
     pub major: u64,
@@ -124,7 +137,7 @@ pub struct ProtocolVersion {
 
 macro_rules! wire_enum {
     ($name:ident { $($variant:ident $(= $wire:literal)?),+ $(,)? }) => {
-        #[derive(Debug, Deserialize, Serialize)]
+        #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
         pub enum $name {
             $($(#[serde(rename = $wire)])? $variant),+
         }
@@ -132,6 +145,11 @@ macro_rules! wire_enum {
 }
 
 wire_enum!(Risk { R0, R1, R2, R3 });
+wire_enum!(ProposalState {
+    Proposed,
+    ApprovalRequired,
+    Rejected
+});
 wire_enum!(TrustState { Quarantined = "quarantined", Paired = "paired", Revoked = "revoked" });
 wire_enum!(ConnectionState { Online = "online", Degraded = "degraded", Offline = "offline", Resynchronizing = "resynchronizing" });
 wire_enum!(Availability { OnlineOnly = "online_only", OnlineOrOffline = "online_or_offline", InstalledOfflineWorkflow = "installed_offline_workflow" });

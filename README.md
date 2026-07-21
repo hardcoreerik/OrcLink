@@ -59,8 +59,9 @@ There is no generic “AI shell” or universal raw-device escape hatch. Adapter
 
 | Surface | Current evidence |
 |---|---|
-| `orclinkd` | Ingests adapter records, owns SQLite state, and serves loopback snapshots, operations, and timeline APIs. |
-| Control Room | A Tauri desktop console reads daemon-owned state and clearly separates proposals from authority. |
+| `orclinkd` | Ingests adapter records, owns SQLite state, and serves a versioned local API for nodes, capabilities, proposals, operations, and the Chronicle. |
+| Rust SDK + CLI | `orclink-client` and `orclinkctl` give apps and operators typed access without direct USB, serial, adapter, or SQLite ownership. |
+| Control Room | A Tauri desktop console reads daemon-owned state and submits typed proposals while clearly separating admission from authority. |
 | Windows + Ollama | Local sidecars report bounded host and installed-model state without requiring a cloud account. |
 | M5Tab5 | 1280×720 touch UI, stable identity, authenticated telemetry, bounded offline workflows, NVS journal, Wi-Fi inventory/provisioning, and firmware-test proof. |
 | Waveshare ESP32-P4 | 2.4-inch ILI9341 display, XPT2046 touch, live Ethernet/DHCP telemetry, and ESP32-C6 Wi-Fi inventory on the measured dev kit. |
@@ -125,6 +126,18 @@ cargo run -p orclink-daemon
 
 The daemon listens on `http://127.0.0.1:4017` by default.
 
+Inspect the real API through the Rust CLI:
+
+```powershell
+cargo run -p orclinkctl -- status
+cargo run -p orclinkctl -- doctor
+cargo run -p orclinkctl -- capabilities
+cargo run -p orclinkctl -- propose .\examples\proposals\host-inventory.json
+```
+
+See the [local API, Rust SDK, and CLI guide](docs/LOCAL_API.md). OpenAPI
+discovery is available from `/api/v1/openapi.json`.
+
 ### Launch Control Room
 
 ```powershell
@@ -140,11 +153,13 @@ The Control Room is a client. Browser or UI state never grants authority.
 | Path | Purpose |
 |---|---|
 | `crates/orclink-daemon` | Authoritative daemon, SQLite projection, and loopback API |
+| `crates/orclink-client` | Typed Rust client for the versioned local API |
 | `crates/orclink-protocol` | Protocol-v1 types, invariants, and TheOrc proposal boundary |
 | `crates/orclink-core` | Deterministic simulator and sequential workflow executor |
 | `crates/orclink-firmware-test` | Identity-bound, approval-gated ESP32 flashing workflow |
 | `adapters/` | Isolated Windows, Ollama, M5Tab5, Moonraker, RTL-SDR, and Meshtastic integrations |
 | `apps/control-room` | Tauri desktop operations console |
+| `apps/orclinkctl` | Rust operator CLI and machine-readable automation surface |
 | `firmware/m5tab5` | M5Tab5 edge agent, console, Wi-Fi, journal, and RTL-SDR work |
 | `firmware/waveshare-p4` | Waveshare P4 display, touch, Ethernet, and Wi-Fi proof |
 | `schemas/` | Versioned JSON Schema contract pack and examples |

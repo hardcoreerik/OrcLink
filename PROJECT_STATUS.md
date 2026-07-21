@@ -13,7 +13,8 @@
 - Real local Windows host and Ollama sidecars emit protocol-v1 hello and node snapshot records without cloud access.
 - Windows service mutations are default-deny behind an explicit allowlist; Ollama generation is installed-model-only and capped at 128 output tokens.
 - Live local checks exercised Windows service status, bounded Ollama generation, and immediate generation cancellation.
-- Minimal `orclinkd` owns adapter collection, persists records in SQLite, and serves loopback read APIs for snapshots, operations, and timeline.
+- `orclinkd` owns adapter collection, persists records in SQLite, and serves a versioned loopback API for status, latest nodes, capability/risk catalog, operations, bounded Chronicle queries, proposal intake/receipts, and OpenAPI discovery. Proposal admission atomically records the receipt and Chronicle fact while enforcing current target/capability presence, fixed risk floors, idempotency, higher-risk approval, direct-secret rejection, and foreign-browser-origin denial without claiming dispatch.
+- A reusable `orclink-client` Rust SDK and `orclinkctl` operator CLI expose status, doctor, nodes, capabilities, operations, timeline/watch, proposal, and OpenAPI workflows without direct adapter or hardware access.
 - Minimal Tauri Control Room reads daemon-owned node snapshots, operations, and timeline with visible online/offline state.
 - M5Tab5 firmware boots on the measured unit, renders a 1280x720 touch UI, reports structured telemetry, and preserves its stable node identity.
 - Physical-USB pairing provisions one device credential; challenge/HMAC authentication gates telemetry before the host adapter forwards it.
@@ -30,6 +31,7 @@
 ## Not yet verified
 
 - No allowlisted Windows service mutation has been selected or exercised.
+- Proposal dispatch, requester grants, signed approvals, adapter command sessions, cancellation, and independent outcome verification are not yet wired into the local API; valid intake remains `Proposed` or `ApprovalRequired` rather than `Authorized`.
 - M5Tab5 ESP-Hosted initialization and passive station scanning are verified; Wi-Fi association, TLS, AP roaming/loss, and daemon-over-network restart behavior are unverified.
 - Waveshare P4 Ethernet/DHCP and passive Wi-Fi scanning are verified; Wi-Fi association, TLS, and an authenticated OrcLink socket transport over either interface are unverified.
 - The development unit stores its pairing key in unencrypted NVS; secure boot and flash encryption are disabled, so this is not production-protected identity storage.

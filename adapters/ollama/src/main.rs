@@ -4,7 +4,7 @@ use std::{
     env,
     io::{BufRead, BufReader},
     process::ExitCode,
-    time::{Duration, Instant},
+    time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
 
 fn get(base_url: &str, path: &str) -> Result<Value, String> {
@@ -111,19 +111,31 @@ fn generate(
 }
 
 fn run_snapshot(base_url: &str) -> Result<(), String> {
+    let run_id = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map_err(|error| error.to_string())?
+        .as_millis();
     let version = get(base_url, "/api/version")?;
     let installed = model_names(&get(base_url, "/api/tags")?);
     let running = model_names(&get(base_url, "/api/ps")?);
     for record in [
         envelope(
             MessageType::Hello,
-            "ollama_hello_01",
+            &format!("ollama_hello_{run_id}"),
             json!({"adapter":{"id":"ollama.local","version":env!("CARGO_PKG_VERSION")},"features":["telemetry","commands","cancellation"],"capability_namespaces":["ollama"],"config_schema_version":1}),
         ),
         envelope(
             MessageType::NodeSnapshot,
-            "ollama_snapshot_01",
-            json!({"node_id":"ollama.local","server_version":version["version"],"installed_models":installed,"running_models":running}),
+            &format!("ollama_snapshot_{run_id}"),
+            json!({
+                "node_id":"ollama.local",
+                "display_name":"Ollama",
+                "connection_state":"online",
+                "server_version":version["version"],
+                "installed_models":installed,
+                "running_models":running,
+                "capabilities":["ollama.model.list","ollama.generate"]
+            }),
         ),
     ] {
         print_record(&record)?;

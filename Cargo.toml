@@ -6,6 +6,8 @@ members = [
     "adapters/ollama",
     "adapters/rtl-sdr",
     "apps/control-room/src-tauri",
+    "apps/orclinkctl",
+    "crates/orclink-client",
     "crates/orclink-core",
     "crates/orclink-daemon",
     "crates/orclink-firmware-test",

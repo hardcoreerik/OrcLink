@@ -120,13 +120,21 @@
                   <span class="proposal-badge">PROPOSAL ONLY</span>
                 </div>
                 <form id="orc-form">
+                  <div class="proposal-fields">
+                    <label for="proposal-target">Target node
+                      <select id="proposal-target" disabled><option>Awaiting registry</option></select>
+                    </label>
+                    <label for="proposal-capability">Declared capability
+                      <select id="proposal-capability" disabled><option>Awaiting catalog</option></select>
+                    </label>
+                  </div>
                   <label for="orc-request">Describe an intended outcome</label>
                   <textarea id="orc-request" rows="4" placeholder="e.g. Verify the Waveshare P4 before a firmware update"></textarea>
                   <div class="prompt-chips" aria-label="Example requests">
                     <button type="button" data-prompt="Inspect every degraded node">Inspect degraded nodes</button>
                     <button type="button" data-prompt="Prepare a safe ESP32 firmware validation plan">Prepare firmware test</button>
                   </div>
-                  <button class="draft-button" type="submit"><span>Draft proposal</span><b aria-hidden="true">→</b></button>
+                  <button class="draft-button" type="submit"><span>Submit typed proposal</span><b aria-hidden="true">→</b></button>
                 </form>
                 <div id="proposal-result" class="proposal-result" hidden role="status"></div>
                 <p class="authority-note"><span aria-hidden="true">◆</span> TheOrc may propose. OrcLink validates policy, approval, and observed outcome.</p>

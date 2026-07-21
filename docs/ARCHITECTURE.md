@@ -45,6 +45,19 @@ The M5Tab5 agent is protocol-compatible in spirit but is a remote edge process, 
 7. Core records progress and independently verifies state when possible.
 8. Clients receive ordered updates and may resnapshot after a gap.
 
+The loopback HTTP API is versioned under `/api/v1`. It exposes daemon status,
+latest nodes, an observed capability catalog with daemon-owned risk floors,
+operations, bounded Chronicle queries, typed proposal intake, proposal receipts,
+and an OpenAPI document. The `orclink-client` Rust crate and `orclinkctl` CLI use
+this same surface. Direct adapter, serial, USB, and SQLite access remains outside
+the application boundary.
+
+Proposal admission is not dispatch. The v1 proposal route validates identity
+syntax, target/capability presence, schema versions, risk floors, idempotency,
+and secret-field rules before recording a lifecycle fact. R1-R3 proposals are
+forced to `ApprovalRequired`; R0 proposals remain `Proposed` for policy
+evaluation until grants and dispatch are implemented.
+
 Events are immutable facts; current node state is a replaceable projection. Every event carries an event ID, source ID, source sequence when available, source time, daemon receipt time, kind, schema version, correlation ID, and payload.
 
 ## Workflows

@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "proposal_id": "example:ollama_models:01",
+  "requester_id": "orclinkctl.local",
+  "target": {
+    "node_id": "ollama.local",
+    "component_id": null
+  },
+  "capability": {
+    "name": "ollama.model.list",
+    "schema_version": 1
+  },
+  "arguments": {
+    "intent": "Refresh the installed-model inventory"
+  },
+  "risk": "R0",
+  "approval_required": false,
+  "idempotency_key": "example:ollama_models:01"
+}

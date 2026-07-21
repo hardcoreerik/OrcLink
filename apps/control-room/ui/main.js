@@ -27,6 +27,8 @@ const ui = {
   nodeDialogContent: document.querySelector("#node-dialog-content"),
   connectionDialog: document.querySelector("#connection-dialog"),
   proposalResult: document.querySelector("#proposal-result"),
+  proposalTarget: document.querySelector("#proposal-target"),
+  proposalCapability: document.querySelector("#proposal-capability"),
 };
 
 const state = {
@@ -34,6 +36,7 @@ const state = {
   nodes: [],
   operations: [],
   timeline: [],
+  catalog: [],
   operationFilter: "all",
   lastRefresh: null,
 };
@@ -189,6 +192,41 @@ async function read(path) {
   const response = await fetch(`${API}/${path}`, { cache: "no-store" });
   if (!response.ok) throw new Error(`${path}: HTTP ${response.status}`);
   return response.json();
+}
+
+function renderProposalCapabilities() {
+  const target = ui.proposalTarget.value;
+  const available = state.catalog.filter((capability) => capability.nodes?.includes(target));
+  ui.proposalCapability.replaceChildren();
+  if (!available.length) {
+    ui.proposalCapability.append(new Option("No cataloged capabilities", ""));
+    ui.proposalCapability.disabled = true;
+    return;
+  }
+  for (const capability of available) {
+    const risk = capability.risk_floor || "NO RISK FLOOR";
+    const option = new Option(`${capability.name} · ${risk}`, capability.name);
+    option.disabled = !capability.invokable;
+    option.dataset.risk = capability.risk_floor || "";
+    ui.proposalCapability.append(option);
+  }
+  ui.proposalCapability.disabled = !available.some((capability) => capability.invokable);
+}
+
+function renderProposalTargets() {
+  const prior = ui.proposalTarget.value;
+  ui.proposalTarget.replaceChildren();
+  for (const node of state.nodes) {
+    ui.proposalTarget.append(new Option(`${node.name} · ${node.status}`, node.id));
+  }
+  if (!state.nodes.length) {
+    ui.proposalTarget.append(new Option("No authoritative nodes", ""));
+    ui.proposalTarget.disabled = true;
+  } else {
+    ui.proposalTarget.disabled = false;
+    if (state.nodes.some((node) => node.id === prior)) ui.proposalTarget.value = prior;
+  }
+  renderProposalCapabilities();
 }
 
 function empty(container, title, detail) {
@@ -474,6 +512,7 @@ function render() {
   renderNetwork();
   renderOperations();
   renderTimeline();
+  renderProposalTargets();
 }
 
 function demoRecords() {
@@ -559,6 +598,7 @@ function useDemo() {
   state.timeline = data.timeline;
   state.nodes = normalizeNodes(data.snapshots, data.timeline);
   state.operations = normalizeOperations(data.operations);
+  state.catalog = [];
   state.lastRefresh = new Date();
   setConnection("demo");
   ui.lastUpdated.textContent = "Preview data · not device state";
@@ -571,14 +611,16 @@ async function refresh() {
   ui.connection.textContent = "Connecting to orclinkd";
   ui.connectionDot.className = "status-dot";
   try {
-    const [snapshots, operations, timeline] = await Promise.all([
+    const [snapshots, operations, timeline, catalog] = await Promise.all([
       read("snapshot"),
       read("operations"),
       read("timeline"),
+      read("v1/capabilities").catch(() => []),
     ]);
     state.timeline = timeline;
     state.nodes = normalizeNodes(snapshots, timeline);
     state.operations = normalizeOperations(operations);
+    state.catalog = catalog;
     state.lastRefresh = new Date();
     setConnection("live");
     ui.lastUpdated.textContent = `Refreshed ${state.lastRefresh.toLocaleTimeString()}`;
@@ -586,6 +628,7 @@ async function refresh() {
     state.nodes = [];
     state.operations = [];
     state.timeline = [];
+    state.catalog = [];
     state.lastRefresh = null;
     setConnection("offline", error.message);
     ui.lastUpdated.textContent = "No authoritative snapshot";
@@ -621,14 +664,50 @@ for (const button of document.querySelectorAll("[data-prompt]")) {
   });
 }
 
-document.querySelector("#orc-form").addEventListener("submit", (event) => {
+document.querySelector("#orc-form").addEventListener("submit", async (event) => {
   event.preventDefault();
   const request = document.querySelector("#orc-request").value.trim();
   ui.proposalResult.hidden = false;
-  ui.proposalResult.textContent = request
-    ? `Draft captured locally: “${request}” No command was submitted; the daemon does not yet expose a proposal mutation endpoint.`
-    : "Describe an intended outcome before drafting a proposal.";
+  const target = ui.proposalTarget.value;
+  const capabilityName = ui.proposalCapability.value;
+  const capability = state.catalog.find((entry) => entry.name === capabilityName && entry.nodes?.includes(target));
+  if (!request || !target || !capability?.invokable || !capability.risk_floor) {
+    ui.proposalResult.textContent = "Choose an invokable target capability and describe the intended outcome.";
+    return;
+  }
+  const proposalId = `control-room:${crypto.randomUUID()}`;
+  const submit = event.currentTarget.querySelector("button[type=submit]");
+  submit.disabled = true;
+  ui.proposalResult.textContent = "Submitting typed intent to orclinkd…";
+  try {
+    const response = await fetch(`${API}/v1/proposals`, {
+      method: "POST",
+      cache: "no-store",
+      headers: { "Content-Type": "application/json", "X-OrcLink-Client": "control-room/0.1" },
+      body: JSON.stringify({
+        schema_version: 1,
+        proposal_id: proposalId,
+        requester_id: "control-room.local",
+        target: { node_id: target, component_id: null },
+        capability: { name: capabilityName, schema_version: capability.schema_version },
+        arguments: { intent: request },
+        risk: capability.risk_floor,
+        approval_required: capability.risk_floor !== "R0",
+        idempotency_key: proposalId,
+      }),
+    });
+    const receipt = await response.json();
+    if (!response.ok && !receipt.state) throw new Error(receipt.error?.message || `HTTP ${response.status}`);
+    ui.proposalResult.textContent = `${receipt.proposal_id}: ${sentence(receipt.state)} · ${sentence(receipt.reason)}${receipt.approval_required ? " · human approval required" : ""}`;
+    await refresh();
+  } catch (error) {
+    ui.proposalResult.textContent = `Proposal rejected: ${error.message}`;
+  } finally {
+    submit.disabled = false;
+  }
 });
+
+ui.proposalTarget.addEventListener("change", renderProposalCapabilities);
 
 ui.refresh.addEventListener("click", refresh);
 ui.demoButton.addEventListener("click", () => (state.mode === "demo" ? refresh() : useDemo()));

@@ -1,4 +1,6 @@
+use orclink_protocol::{AdapterEnvelope, MessageType, ProtocolVersion};
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use sha2::{Digest, Sha256};
 use std::{
     env,
@@ -19,6 +21,57 @@ use windows_sys::Win32::{
 
 const DEVICE_MUTEX: &str = "Local\\OrcLink.RtlSdr.Device0";
 const MAX_CAPTURE_BYTES: u64 = 1 << 30;
+
+fn envelope(
+    message_type: MessageType,
+    message_id: &str,
+    payload: serde_json::Value,
+) -> AdapterEnvelope {
+    AdapterEnvelope {
+        message_type,
+        message_id: message_id.into(),
+        protocol_version: ProtocolVersion { major: 1, minor: 0 },
+        payload: payload
+            .as_object()
+            .expect("adapter payload is an object")
+            .clone(),
+        in_reply_to: None,
+        adapter_instance_id: None,
+    }
+}
+
+fn snapshot() -> Result<(), String> {
+    let run_id = now_ms()?;
+    for record in [
+        envelope(
+            MessageType::Hello,
+            &format!("rtl_sdr_hello_{run_id}"),
+            json!({
+                "adapter":{"id":"rtl_sdr.windows","version":env!("CARGO_PKG_VERSION")},
+                "features":["discovery","bounded_capture","provenance","decode"],
+                "capability_namespaces":["rtl_sdr"],
+                "config_schema_version":1
+            }),
+        ),
+        envelope(
+            MessageType::NodeSnapshot,
+            &format!("rtl_sdr_snapshot_{run_id}"),
+            json!({
+                "node_id":"rtl-sdr.device0",
+                "display_name":"RTL-SDR Device 0",
+                "connection_state":"offline",
+                "device_state":"not_probed",
+                "capabilities":["rtl_sdr.capture","rtl_sdr.decode"]
+            }),
+        ),
+    ] {
+        println!(
+            "{}",
+            serde_json::to_string(&record).map_err(|error| error.to_string())?
+        );
+    }
+    Ok(())
+}
 
 #[derive(Debug, Deserialize, Serialize)]
 struct CaptureProvenance {
@@ -393,9 +446,10 @@ fn decode(mut args: impl Iterator<Item = String>) -> Result<(), String> {
 fn run() -> Result<(), String> {
     let mut args = env::args().skip(1);
     match args.next().as_deref() {
+        None | Some("snapshot") if args.next().is_none() => snapshot(),
         Some("capture") => capture(args),
         Some("decode") => decode(args),
-        _ => Err("usage:\n  orclink-adapter-rtl-sdr capture <output.cu8> <frequency_hz> <sample_rate_hz> <max_bytes> [start_unix_ms]\n  orclink-adapter-rtl-sdr decode <capture.cu8> <capture.json> <pipeline> <new_output_dir> [timeout_seconds]".into()),
+        _ => Err("usage:\n  orclink-adapter-rtl-sdr snapshot\n  orclink-adapter-rtl-sdr capture <output.cu8> <frequency_hz> <sample_rate_hz> <max_bytes> [start_unix_ms]\n  orclink-adapter-rtl-sdr decode <capture.cu8> <capture.json> <pipeline> <new_output_dir> [timeout_seconds]".into()),
     }
 }
 
