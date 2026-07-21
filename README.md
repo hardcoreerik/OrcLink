@@ -5,6 +5,7 @@
 # OrcLink
 
 [![Rust](https://img.shields.io/badge/core-Rust-76B900?style=for-the-badge&logo=rust&logoColor=white)](#quick-start)
+[![C++](https://img.shields.io/badge/firmware-C%2B%2B-569CD6?style=for-the-badge&logo=cplusplus&logoColor=white)](#measured-hardware-proofs)
 [![ESP32-P4](https://img.shields.io/badge/edge-ESP32--P4-9DFF00?style=for-the-badge&logo=espressif&logoColor=111111)](#measured-hardware-proofs)
 [![Local first](https://img.shields.io/badge/network-local--first-161616?style=for-the-badge)](#authority-before-automation)
 [![Hardware proof](https://img.shields.io/badge/status-live_hardware_proofs-569CD6?style=for-the-badge)](#what-works-today)
@@ -21,7 +22,7 @@ TheOrc can plan. OrcLink gives it a typed, policy-gated, auditable path to hardw
 
 ## What is this thing?
 
-OrcLink is a Rust-based, local-first control plane for hardware, services, AI runtimes, radios, and technical workflows. It answers the questions that matter when software reaches into the physical world:
+OrcLink is a local-first system with a **Rust control plane** and **C++/C ESP32 firmware** for hardware, services, AI runtimes, radios, and technical workflows. It answers the questions that matter when software reaches into the physical world:
 
 - What is connected?
 - What state is it actually in?
@@ -30,6 +31,8 @@ OrcLink is a Rust-based, local-first control plane for hardware, services, AI ru
 - What evidence proves the outcome?
 
 The daemon—not the UI and not an AI model—is the authority. Clients propose typed capability invocations; `orclinkd` validates identity, schema, policy, risk, approvals, timeouts, and observed results. Closing the dashboard does not erase state or quietly stop approved work.
+
+The repository language mix reflects the architecture rather than a single-language application: Rust owns the daemon, protocol, workflows, and native adapters; C++/C runs on the ESP32 targets; JavaScript, HTML, and CSS power Control Room and the project site.
 
 ## Authority before automation
 

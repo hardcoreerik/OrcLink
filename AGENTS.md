@@ -2,7 +2,7 @@
 
 ## Purpose and authority
 
-- OrcLink is a Rust-based, local-first control plane for hardware, services, AI runtimes, and technical workflows.
+- OrcLink is a local-first system with a Rust control plane and C++/C ESP32 firmware for hardware, services, AI runtimes, and technical workflows.
 - `orclinkd` is the authority for identity, policy, approvals, command lifecycle, workflows, persistence, and audit. UIs, AI planners, adapters, and edge agents are clients and must not bypass it.
 - AI may propose typed capability invocations; it must never gain an arbitrary shell/hardware channel, approve its own consequential work, or expand authority while offline.
 - Prefer deterministic, declared workflows and namespaced, schema-validated capabilities over generic scripting or a universal device ontology.
