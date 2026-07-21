@@ -97,3 +97,9 @@ These are project decisions, not verified implementation results. Supersede entr
 **Decision:** the first mutation API persists typed proposals and returns `Proposed`, `ApprovalRequired`, or `Rejected`; it does not treat admission as authorization or execution.
 
 **Rationale:** target/capability validation, fixed risk floors, idempotency, secret rejection, and audit must exist before adapters receive commands. Dispatch remains a later gate with explicit grants, approvals, deadlines, and verification.
+
+## D-017 — OrcLink is the Orc ecosystem's physical authority
+
+**Decision:** TheOrc owns goals, plans, agents, and HIVE orchestration; OrcLink owns physical identity, declared capabilities, policy admission, device lifecycle, and observed evidence; TheOrc Companion remains the mobile scout, relay, and constrained field node.
+
+**Rationale:** a named boundary prevents overlapping bosses, competing device ownership, and UI clients quietly becoming authorities. Cross-project integration must use typed, authenticated contracts and must label proposed integrations separately from measured ones.

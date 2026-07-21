@@ -384,11 +384,13 @@ h3 { color: var(--strong); }
 .warband::after { position: absolute; inset: 0; content: ""; background: rgba(4, 7, 4, 0.36); }
 .warband-copy { position: absolute; z-index: 2; inset: 0; display: flex; max-width: 650px; flex-direction: column; justify-content: center; padding: 70px; background: rgba(5, 8, 5, 0.82); }
 .warband-copy > p:not(.eyebrow) { color: #a1ab9e; font-size: 17px; line-height: 1.7; }
+.warband-copy .integration-note { padding-left: 14px; border-left: 2px solid var(--green); color: var(--muted); font-size: 12px; }
 .project-links { display: grid; grid-template-columns: repeat(3, 1fr); margin-top: 30px; border-top: 1px solid var(--line); }
 .project-links a { display: grid; gap: 5px; padding: 18px 12px; border-right: 1px solid var(--line); text-decoration: none; }
 .project-links a:first-child { padding-left: 0; }
 .project-links a:last-child { border-right: 0; }
 .project-links b { color: var(--green); font-size: 13px; }
+.project-links small { color: #aeb8aa; font: 800 8px/1 "Cascadia Mono", Consolas, monospace; letter-spacing: 0.14em; }
 .project-links span { color: var(--muted); font-size: 10px; line-height: 1.4; }
 
 .final-cta { padding: 135px 0; text-align: center; }

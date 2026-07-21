@@ -9,12 +9,14 @@
 [![ESP32-P4](https://img.shields.io/badge/edge-ESP32--P4-9DFF00?style=for-the-badge&logo=espressif&logoColor=111111)](#measured-hardware-proofs)
 [![Local first](https://img.shields.io/badge/network-local--first-161616?style=for-the-badge)](#authority-before-automation)
 [![Hardware proof](https://img.shields.io/badge/status-live_hardware_proofs-569CD6?style=for-the-badge)](#what-works-today)
+[![Build](https://img.shields.io/github/actions/workflow/status/hardcoreerik/OrcLink/ci.yml?branch=main&style=for-the-badge&label=build)](https://github.com/hardcoreerik/OrcLink/actions/workflows/ci.yml)
+[![Orc ecosystem](https://img.shields.io/badge/warband-Orc_ecosystem-39FF6A?style=for-the-badge)](docs/ORC_ECOSYSTEM.md)
 
 **The edge-control plane for [TheOrc](https://github.com/hardcoreerik/TheOrc).**
 
 TheOrc can plan. OrcLink gives it a typed, policy-gated, auditable path to hardware—without handing an AI arbitrary USB, shell, or device access.
 
-[Explore OrcLink](https://hardcoreerik.github.io/OrcLink/) · [Architecture](docs/ARCHITECTURE.md) · [Project status](PROJECT_STATUS.md) · [Safety model](docs/SECURITY_AND_SAFETY.md)
+[Explore OrcLink](https://hardcoreerik.github.io/OrcLink/) · [Orc ecosystem](docs/ORC_ECOSYSTEM.md) · [Architecture](docs/ARCHITECTURE.md) · [Project status](PROJECT_STATUS.md) · [Safety model](docs/SECURITY_AND_SAFETY.md)
 
 </div>
 
@@ -91,11 +93,19 @@ M5Tab5 is both an edge agent and portable operator console. The live unit has pr
 
 See the [ESP32 universal driver plan](docs/ESP32_RTL_SDR_DRIVER_PLAN.md) and [clean-room transfer specification](docs/RTL_SDR_V4_CLEAN_ROOM_SPEC.md).
 
-## Why OrcLink exists
+## Place in the Orc sphere
 
 TheOrc is the warboss: planning, coordination, and the HIVE. OrcLink is the field authority: stable device identity, adapters, policy gates, offline limits, and the Chronicle of what actually happened.
 
 That split makes one driver useful to many applications. Apps call declared OrcLink capabilities instead of competing for USB ownership. A future RTL-SDR service can expose bounded tune, gain, capture, and stream operations while one authenticated component owns the physical device.
+
+| Project | Role in the warband | Authority it owns |
+|---|---|---|
+| [TheOrc](https://github.com/hardcoreerik/TheOrc) | Warboss and local AI workbench | Goals, plans, agent coordination, HIVE orchestration, and operator experience |
+| **OrcLink** | Edge-control authority | Physical identity, capability admission, device ownership, lifecycle, and Chronicle evidence |
+| [TheOrc Companion](https://github.com/hardcoreerik/TheOrcCompanion) | Scout, relay, and field terminal | Mobile discovery, route truth, constrained edge work, and field visibility |
+
+The typed TheOrc proposal boundary exists today. Full signed TheOrc-to-OrcLink dispatch and direct Companion enrollment do not; they remain explicit integration milestones rather than implied features. See the [Orc ecosystem contract](docs/ORC_ECOSYSTEM.md) for the product boundaries and shared principles.
 
 ## Quick start
 
@@ -183,10 +193,17 @@ Phases 0–8 have narrow implementation proofs. The active hardware gate is boun
 
 This is an active hardware-research project, not a claim of production safety certification. Every live-hardware milestone records what was measured, what merely compiled, and what remains unknown.
 
-## The warband
+## Licensing status
+
+OrcLink does not currently publish a software license. Public source visibility alone does not grant permission to copy, modify, or redistribute the code. TheOrc and TheOrc Companion currently use different licensing models, so selecting OrcLink's terms remains an explicit maintainer decision rather than an inferred ecosystem default.
+
+## Ecosystem and governance
 
 - [TheOrc](https://github.com/hardcoreerik/TheOrc) — local AI orchestrator and HIVE boss
 - [TheOrc Companion](https://github.com/hardcoreerik/TheOrcCompanion) — Android field node, scout, and relay
 - **OrcLink** — edge-control authority connecting plans to real systems
+- [Orc ecosystem contract](docs/ORC_ECOSYSTEM.md) — names, roles, trust boundaries, and integration status
+- [Security policy](SECURITY.md) — confidential vulnerability reporting and supported scope
+- [AI development disclosure](docs/AI_DEVELOPMENT_DISCLOSURE.md) — how AI assistance, evidence, and human decisions are represented
 
-Created by [Erik / hardcoreerik](https://github.com/hardcoreerik), with AI-assisted development. The architecture, hardware choices, validation direction, and final decisions are human-led.
+OrcLink is created and maintained by [Erik / hardcoreerik](https://github.com/hardcoreerik), with AI-assisted implementation, review, and verification. Product direction, hardware choices, risk acceptance, and release decisions remain human-owned.

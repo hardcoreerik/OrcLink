@@ -12,12 +12,13 @@
 Read these before making architectural or scope changes:
 
 1. `PROJECT_STATUS.md` for current implementation evidence, gaps, and the next gate.
-2. `docs/DECISIONS.md` for accepted architectural decisions. Add an explicit superseding decision; do not silently rewrite history.
-3. `docs/SECURITY_AND_SAFETY.md` and `docs/CAPABILITY_MODEL.md` for trust, approval, risk, and lifecycle invariants.
-4. `docs/ARCHITECTURE.md` and `docs/ADAPTER_PROTOCOL.md` for component ownership and protocol semantics.
-5. The relevant integration document under `docs/` plus nearby tests for device-specific work.
+2. `docs/ORC_ECOSYSTEM.md` for OrcLink's role beside TheOrc and TheOrc Companion, shared product principles, naming, and honest integration status.
+3. `docs/DECISIONS.md` for accepted architectural decisions. Add an explicit superseding decision; do not silently rewrite history.
+4. `docs/SECURITY_AND_SAFETY.md` and `docs/CAPABILITY_MODEL.md` for trust, approval, risk, and lifecycle invariants.
+5. `docs/ARCHITECTURE.md` and `docs/ADAPTER_PROTOCOL.md` for component ownership and protocol semantics.
+6. The relevant integration document under `docs/` plus nearby tests for device-specific work.
 
-The final sentence of `README.md` saying implementation has not begun is stale. The code, tests, `PROJECT_STATUS.md`, and measured entries in `docs/ROADMAP.md` show narrow proofs through Phase 8. Preserve the documentation truth labels: **Decision**, **Assumption**, **Unknown**, and clearly identified measured/repo proof.
+The code, tests, `PROJECT_STATUS.md`, and measured entries in `docs/ROADMAP.md` show narrow proofs through Phase 8. Preserve the documentation truth labels: **Decision**, **Assumption**, **Unknown**, and clearly identified measured/repo proof.
 
 ## Repository map
 
@@ -69,6 +70,7 @@ The final sentence of `README.md` saying implementation has not begun is stale. 
 - Phases 0-8 have narrow proofs; Phases 9-10 are deferred.
 - Rust owns the public application surface. C++/C stays at the measured ESP32 firmware boundary unless a target-specific reason justifies moving it.
 - Proposal intake is implemented, but dispatch is not: `Proposed` and `ApprovalRequired` are never described as authorized or executed.
+- In the Orc ecosystem, TheOrc owns goals, plans, agents, and HIVE orchestration; OrcLink owns physical identity, capability admission, device lifecycle, and Chronicle evidence; TheOrc Companion remains the scout, relay, and constrained field terminal. Do not blur these authorities.
 - The active hardware gate is a bounded native IQ capture from the RTL-SDR.COM V4 attached directly to M5Tab5.
 - Keep claims narrow: native V4 USB enumeration is proven, but R828D initialization, bounded IQ transfer, calibrated reception, valid over-the-air signal, and antenna/PPM/gain profiles remain unverified unless newer measured evidence explicitly supersedes this memory.
 - When code or hardware evidence changes status, update `PROJECT_STATUS.md` and the relevant integration/roadmap documentation in the same change so claims remain synchronized.
