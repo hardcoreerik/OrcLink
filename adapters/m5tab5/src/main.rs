@@ -207,6 +207,55 @@ fn authenticate(
         .map_err(|_| "device authentication failed".to_string())
 }
 
+fn run_rtl_capture(
+    reader: &mut impl BufRead,
+    writer: &mut impl Write,
+    preset: &str,
+    continuous_for: Option<Duration>,
+) -> Result<String, String> {
+    let command = if continuous_for.is_some() {
+        "RTL_LISTEN"
+    } else {
+        "RTL_CAPTURE"
+    };
+    writeln!(writer, "{command} {preset}").map_err(|error| error.to_string())?;
+    flush_serial(writer)?;
+    read_control(reader, "RTL_CAPTURE_QUEUED ")?;
+    let started = Instant::now();
+    let deadline = started + continuous_for.unwrap_or_default() + Duration::from_secs(30);
+    let mut last_ping = Instant::now();
+    let mut stop_sent = false;
+    loop {
+        if last_ping.elapsed() >= Duration::from_secs(1) {
+            writeln!(writer, "PING").map_err(|error| error.to_string())?;
+            flush_serial(writer)?;
+            last_ping = Instant::now();
+        }
+        if !stop_sent && continuous_for.is_some_and(|duration| started.elapsed() >= duration) {
+            writeln!(writer, "RTL_STOP").map_err(|error| error.to_string())?;
+            flush_serial(writer)?;
+            stop_sent = true;
+        }
+        let mut line = String::new();
+        match reader.read_line(&mut line) {
+            Ok(0) => return Err("device disconnected during RTL-SDR capture".into()),
+            Ok(_) if line.trim_start().starts_with("RTL_CAPTURE_OK ") => {
+                return Ok(line.trim().into());
+            }
+            Ok(_) if line.trim_start().starts_with("RTL_CAPTURE_ERROR ") => {
+                return Err(line.trim().into());
+            }
+            Ok(_) if !line.trim().is_empty() => eprint!("{line}"),
+            Ok(_) => {}
+            Err(error) if is_timeout(&error) && Instant::now() < deadline => {}
+            Err(error) => return Err(error.to_string()),
+        }
+        if Instant::now() >= deadline {
+            return Err("timed out waiting for RTL-SDR capture".into());
+        }
+    }
+}
+
 fn write_envelope(line: &str, mut output: impl Write) -> Result<(AdapterEnvelope, usize), String> {
     let envelope: AdapterEnvelope =
         serde_json::from_str(line).map_err(|error| format!("invalid envelope: {error}"))?;
@@ -236,16 +285,34 @@ fn forward(reader: impl BufRead, mut output: impl Write) -> Result<usize, String
     Ok(count)
 }
 
+struct DeviceOptions<'a> {
+    once: bool,
+    prepare_flash: Option<&'a str>,
+    install_status: Option<(u32, u16)>,
+    wifi_config: Option<&'a (String, String)>,
+    rotate_key: bool,
+    test_pressure: bool,
+    rtl_preset: Option<&'a str>,
+    rtl_listen_test: bool,
+    rtl_stop: bool,
+}
+
 fn run_device(
     port_name: &str,
     credential: &Path,
-    once: bool,
-    prepare_flash: Option<&str>,
-    install_status: Option<(u32, u16)>,
-    wifi_config: Option<&(String, String)>,
-    rotate_key: bool,
-    test_pressure: bool,
+    options: DeviceOptions<'_>,
 ) -> Result<(), String> {
+    let DeviceOptions {
+        once,
+        prepare_flash,
+        install_status,
+        wifi_config,
+        rotate_key,
+        test_pressure,
+        rtl_preset,
+        rtl_listen_test,
+        rtl_stop,
+    } = options;
     let open_deadline = Instant::now() + Duration::from_secs(8);
     let port = loop {
         match serialport::new(port_name, 115_200)
@@ -266,6 +333,13 @@ fn run_device(
     let mut reader = BufReader::new(port);
     let mut key = load_or_create_key(credential)?;
     authenticate(&mut reader, &mut writer, &key)?;
+
+    if rtl_stop {
+        writeln!(writer, "RTL_STOP").map_err(|error| error.to_string())?;
+        flush_serial(&mut writer)?;
+        read_control(&mut reader, "RTL_STOPPING")?;
+        return Ok(());
+    }
 
     if let Some(digest) = prepare_flash {
         if decode_hex(digest)?.len() != 32 {
@@ -338,6 +412,19 @@ fn run_device(
         replace_key(credential, &replacement)?;
         key = replacement;
         authenticate(&mut reader, &mut writer, &key)?;
+    }
+
+    if let Some(preset) = rtl_preset {
+        println!(
+            "{}",
+            run_rtl_capture(
+                &mut reader,
+                &mut writer,
+                preset,
+                rtl_listen_test.then_some(Duration::from_secs(10)),
+            )?
+        );
+        return Ok(());
     }
 
     writeln!(writer, "PING").map_err(|error| error.to_string())?;
@@ -457,15 +544,37 @@ fn run() -> Result<(), String> {
         .transpose()?;
     let rotate_key = options.iter().any(|value| value == "--rotate-key");
     let test_pressure = options.iter().any(|value| value == "--test-pressure");
+    let rtl_listen_test = options
+        .iter()
+        .any(|value| value == "--rtl-listen-kzel" || value == "--rtl-listen-noaa");
+    let rtl_stop = options.iter().any(|value| value == "--rtl-stop");
+    let rtl_preset = if options
+        .iter()
+        .any(|value| value == "--rtl-noaa" || value == "--rtl-listen-noaa")
+    {
+        Some("NOAA")
+    } else if options
+        .iter()
+        .any(|value| value == "--rtl-capture" || value == "--rtl-listen-kzel")
+    {
+        Some("KZEL")
+    } else {
+        None
+    };
     run_device(
         &argument,
         &credential,
-        once,
-        prepare_flash,
-        install_status,
-        wifi_config.as_ref(),
-        rotate_key,
-        test_pressure,
+        DeviceOptions {
+            once,
+            prepare_flash,
+            install_status,
+            wifi_config: wifi_config.as_ref(),
+            rotate_key,
+            test_pressure,
+            rtl_preset,
+            rtl_listen_test,
+            rtl_stop,
+        },
     )
 }
 
@@ -517,6 +626,23 @@ mod tests {
             "The semaphore timeout period has expired."
         ));
     }
+
+    #[test]
+    fn rtl_capture_sends_selected_preset() {
+        let input = concat!(
+            "RTL_CAPTURE_QUEUED frequency_hz=162400000\n",
+            "RTL_CAPTURE_OK preset=\"NOAA KEC42\"\n"
+        );
+        let mut reader = Cursor::new(input);
+        let mut output = Vec::new();
+        assert!(
+            super::run_rtl_capture(&mut reader, &mut output, "NOAA", None)
+                .unwrap()
+                .contains("NOAA KEC42")
+        );
+        assert_eq!(String::from_utf8(output).unwrap(), "RTL_CAPTURE NOAA\n");
+    }
+
     #[test]
     fn wifi_config_rejects_missing_or_oversized_values() {
         let directory = std::env::temp_dir();

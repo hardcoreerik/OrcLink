@@ -1,0 +1,57 @@
+name: Validate OrcLink
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  rust:
+    name: Rust workspace
+    runs-on: windows-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Install Rust toolchain
+        shell: pwsh
+        run: rustup toolchain install stable --profile minimal --component rustfmt,clippy
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+      - name: Check workspace
+        run: cargo check --workspace --exclude orclink-control-room
+
+      - name: Run tests
+        run: cargo test --workspace --exclude orclink-control-room
+
+      - name: Run Clippy
+        run: cargo clippy --workspace --exclude orclink-control-room --all-targets -- -D warnings
+
+  web:
+    name: Web surfaces
+    runs-on: windows-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Check Control Room JavaScript
+        run: node --check apps/control-room/ui/main.js
+
+      - name: Check landing-page references
+        shell: pwsh
+        run: |
+          $html = Get-Content -LiteralPath site/index.html -Raw
+          $refs = [regex]::Matches($html, '(?:src|href)="([^"]+)"') |
+            ForEach-Object { $_.Groups[1].Value } |
+            Where-Object { $_ -notmatch '^(https?:|#)' }
+          foreach ($ref in $refs) {
+            $path = Join-Path site ($ref -replace '#.*$', '')
+            if (-not (Test-Path -LiteralPath $path)) {
+              throw "Missing local site reference: $ref"
+            }
+          }

@@ -3,35 +3,211 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>OrcLink Control Room</title>
+    <meta
+      name="description"
+      content="OrcLink Control Room — a local-first operations console for connected hardware, services, and workflows."
+    />
+    <meta name="theme-color" content="#0a0c0b" />
+    <title>OrcLink — Control Room</title>
+    <link rel="icon" type="image/png" href="assets/theorc/icon.png" />
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <header>
-      <div>
-        <p class="eyebrow">ORCLINK</p>
-        <h1>Control Room</h1>
-      </div>
-      <div class="connection">
-        <span id="connection-dot" aria-hidden="true"></span>
-        <span id="connection" role="status" aria-live="polite">Connecting</span>
-        <button id="refresh" type="button">Refresh</button>
-      </div>
-    </header>
-    <main>
-      <section aria-labelledby="nodes-title">
-        <h2 id="nodes-title">Nodes</h2>
-        <div id="nodes" class="cards"></div>
-      </section>
-      <section aria-labelledby="operations-title">
-        <h2 id="operations-title">Operations</h2>
-        <div id="operations" class="list"></div>
-      </section>
-      <section aria-labelledby="timeline-title">
-        <h2 id="timeline-title">Timeline</h2>
-        <div id="timeline" class="list"></div>
-      </section>
-    </main>
+    <a class="skip-link" href="#workspace">Skip to command center</a>
+
+    <div class="app-shell">
+      <aside class="rail" aria-label="Primary navigation">
+        <div class="brand">
+          <img class="brand-mark" src="assets/theorc/icon.png" alt="" />
+          <span class="brand-copy"><strong>OrcLink</strong><em>THEORC EDGE CONTROL</em></span>
+        </div>
+
+        <nav class="rail-nav">
+          <button class="nav-item active" type="button" data-view="command">
+            <span class="nav-glyph" aria-hidden="true">⌁</span>
+            <span>Command</span>
+          </button>
+          <button class="nav-item" type="button" data-view="network">
+            <span class="nav-glyph" aria-hidden="true">◎</span>
+            <span>Network</span>
+          </button>
+          <button class="nav-item" type="button" data-view="operations">
+            <span class="nav-glyph" aria-hidden="true">↯</span>
+            <span>Operations</span>
+          </button>
+          <button class="nav-item" type="button" data-view="chronicle">
+            <span class="nav-glyph" aria-hidden="true">≡</span>
+            <span>Chronicle</span>
+          </button>
+        </nav>
+
+        <div class="rail-foot">
+          <div class="mini-status">
+            <span id="rail-status-dot" class="status-dot pending" aria-hidden="true"></span>
+            <span><b id="rail-status">Connecting</b><small>Authority</small></span>
+          </div>
+          <button id="settings-button" class="icon-button" type="button" aria-label="Connection details">•••</button>
+        </div>
+      </aside>
+
+      <main id="workspace" class="workspace" tabindex="-1">
+        <header class="topbar">
+          <div>
+            <p class="kicker">LOCAL CONTROL PLANE</p>
+            <h1 id="view-title">Command Center</h1>
+          </div>
+          <div class="topbar-actions">
+            <span id="mode-pill" class="mode-pill"><i></i> Live telemetry</span>
+            <button id="refresh" class="refresh-button" type="button">
+              <span aria-hidden="true">↻</span> Refresh
+            </button>
+            <button class="operator" type="button" aria-label="Operator profile">
+              <img src="assets/theorc/icon.png" alt="" />
+              <i aria-hidden="true"></i>
+            </button>
+          </div>
+        </header>
+
+        <div id="offline-banner" class="offline-banner" hidden>
+          <span><strong>Daemon unavailable.</strong> Live control is disabled and no cached state is presented as current.</span>
+          <button id="demo-button" type="button">Explore interface preview</button>
+        </div>
+
+        <section id="view-command" class="view active" aria-labelledby="view-title">
+          <div class="command-grid">
+            <div class="primary-column">
+              <section class="hero-panel">
+                <div class="hero-copy">
+                  <p class="section-label"><span></span> SYSTEM POSTURE</p>
+                  <h2>Your hardware.<br /><em>Your rules.</em></h2>
+                  <p id="posture-summary" class="hero-summary">Establishing an authoritative view of the workspace.</p>
+                </div>
+                <img class="hero-orc" src="assets/theorc/icon.png" alt="TheOrc emblem" />
+                <div id="system-score" class="system-score" aria-label="System health score">
+                  <div class="score-ring"><strong>—</strong><span>health</span></div>
+                  <p><b>Assessing</b><small>current posture</small></p>
+                </div>
+              </section>
+
+              <section class="section-block" aria-labelledby="topology-title">
+                <div class="section-heading">
+                  <div>
+                    <p class="section-label"><span></span> LIVE TOPOLOGY</p>
+                    <h2 id="topology-title">Connected systems</h2>
+                  </div>
+                  <button class="text-button" type="button" data-go="network">Inspect network <span>→</span></button>
+                </div>
+                <div id="topology" class="topology" aria-live="polite"></div>
+              </section>
+
+              <section class="section-block telemetry-section" aria-labelledby="telemetry-title">
+                <div class="section-heading compact">
+                  <div>
+                    <p class="section-label"><span></span> SIGNALS</p>
+                    <h2 id="telemetry-title">Edge telemetry</h2>
+                  </div>
+                  <span id="telemetry-age" class="muted">Awaiting samples</span>
+                </div>
+                <div id="telemetry" class="telemetry-grid"></div>
+              </section>
+            </div>
+
+            <aside class="insight-column" aria-label="Planning and approvals">
+              <section class="orc-panel">
+                <div class="orc-heading">
+                  <div class="orc-avatar"><img src="assets/theorc/icon.png" alt="TheOrc" /></div>
+                  <div><p class="section-label">THEORC</p><h2>What should we prepare?</h2></div>
+                  <span class="proposal-badge">PROPOSAL ONLY</span>
+                </div>
+                <form id="orc-form">
+                  <label for="orc-request">Describe an intended outcome</label>
+                  <textarea id="orc-request" rows="4" placeholder="e.g. Verify the Waveshare P4 before a firmware update"></textarea>
+                  <div class="prompt-chips" aria-label="Example requests">
+                    <button type="button" data-prompt="Inspect every degraded node">Inspect degraded nodes</button>
+                    <button type="button" data-prompt="Prepare a safe ESP32 firmware validation plan">Prepare firmware test</button>
+                  </div>
+                  <button class="draft-button" type="submit"><span>Draft proposal</span><b aria-hidden="true">→</b></button>
+                </form>
+                <div id="proposal-result" class="proposal-result" hidden role="status"></div>
+                <p class="authority-note"><span aria-hidden="true">◆</span> TheOrc may propose. OrcLink validates policy, approval, and observed outcome.</p>
+              </section>
+
+              <section class="approval-panel">
+                <div class="section-heading compact">
+                  <div>
+                    <p class="section-label warning"><span></span> HUMAN GATE</p>
+                    <h2>Pending approvals</h2>
+                  </div>
+                  <span id="approval-count" class="count-badge">0</span>
+                </div>
+                <div id="approvals" class="approval-list"></div>
+              </section>
+
+              <section class="recent-panel">
+                <div class="section-heading compact">
+                  <div>
+                    <p class="section-label"><span></span> CHRONICLE</p>
+                    <h2>Recent facts</h2>
+                  </div>
+                  <button class="text-button" type="button" data-go="chronicle">View all</button>
+                </div>
+                <div id="recent-events" class="recent-events"></div>
+              </section>
+            </aside>
+          </div>
+        </section>
+
+        <section id="view-network" class="view" aria-labelledby="network-title">
+          <div class="page-heading">
+            <div><p class="section-label"><span></span> REGISTRY + LIVE STATE</p><h2 id="network-title">Network topology</h2></div>
+            <p>Stable identity is separate from address. Select a node to inspect its evidence and declared surface.</p>
+          </div>
+          <div id="network-summary" class="metric-row"></div>
+          <div id="network-nodes" class="node-table" role="list"></div>
+        </section>
+
+        <section id="view-operations" class="view" aria-labelledby="operations-title">
+          <div class="page-heading split">
+            <div><p class="section-label"><span></span> COMMAND LIFECYCLE</p><h2 id="operations-title">Operations</h2></div>
+            <div class="filter-group" aria-label="Operation filters">
+              <button class="active" type="button" data-operation-filter="all">All</button>
+              <button type="button" data-operation-filter="active">Active</button>
+              <button type="button" data-operation-filter="attention">Attention</button>
+            </div>
+          </div>
+          <div class="operations-header" aria-hidden="true"><span>Operation</span><span>Target</span><span>Risk</span><span>State</span><span>Outcome</span></div>
+          <div id="operations" class="operations-list"></div>
+        </section>
+
+        <section id="view-chronicle" class="view" aria-labelledby="chronicle-title">
+          <div class="page-heading split">
+            <div><p class="section-label"><span></span> APPEND-ONLY HISTORY</p><h2 id="chronicle-title">The Chronicle</h2></div>
+            <label class="search-box"><span aria-hidden="true">⌕</span><span class="sr-only">Filter Chronicle</span><input id="chronicle-search" type="search" placeholder="Filter source or event" /></label>
+          </div>
+          <div id="timeline" class="chronicle-list"></div>
+        </section>
+
+        <footer class="statusbar">
+          <span><i id="connection-dot" class="status-dot pending" aria-hidden="true"></i><b id="connection" role="status" aria-live="polite">Connecting to orclinkd</b></span>
+          <span id="last-updated">No snapshot yet</span>
+          <span class="policy-lock">◆ POLICY AUTHORITY: ORCLINKD</span>
+        </footer>
+      </main>
+    </div>
+
+    <dialog id="node-dialog" class="node-dialog" aria-labelledby="dialog-node-name">
+      <form method="dialog"><button class="dialog-close" aria-label="Close node inspector">×</button></form>
+      <div id="node-dialog-content"></div>
+    </dialog>
+
+    <dialog id="connection-dialog" class="connection-dialog" aria-labelledby="connection-dialog-title">
+      <form method="dialog"><button class="dialog-close" aria-label="Close connection details">×</button></form>
+      <p class="section-label"><span></span> LOCAL ENDPOINT</p>
+      <h2 id="connection-dialog-title">Daemon connection</h2>
+      <code>http://127.0.0.1:4017/api</code>
+      <p>The Control Room reads daemon-owned projections. Browser state never grants authority or approval.</p>
+    </dialog>
+
     <script type="module" src="main.js"></script>
   </body>
 </html>

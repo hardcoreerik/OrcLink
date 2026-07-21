@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#0b0d0b" />
+    <meta
+      name="description"
+      content="OrcLink is the local-first, policy-gated edge-control plane connecting TheOrc to ESP32 hardware, services, radios, and auditable workflows."
+    />
+    <meta property="og:title" content="OrcLink — TheOrc Edge Control" />
+    <meta
+      property="og:description"
+      content="Give TheOrc a safe, typed, auditable path to the real world."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://hardcoreerik.github.io/OrcLink/" />
+    <meta property="og:image" content="https://hardcoreerik.github.io/OrcLink/assets/goblin-swarm.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <title>OrcLink — TheOrc Edge Control</title>
+    <link rel="icon" type="image/png" href="assets/icon.png" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+
+    <header class="site-header">
+      <a class="brand" href="#top" aria-label="OrcLink home">
+        <img src="assets/icon.png" alt="" />
+        <span><strong>ORCLINK</strong><small>THEORC EDGE CONTROL</small></span>
+      </a>
+      <nav aria-label="Primary navigation">
+        <a href="#proofs">Hardware proofs</a>
+        <a href="#architecture">Architecture</a>
+        <a href="https://github.com/hardcoreerik/OrcLink">GitHub</a>
+      </nav>
+    </header>
+
+    <main id="main">
+      <section id="top" class="hero" aria-labelledby="hero-title">
+        <div class="hero-copy">
+          <p class="eyebrow"><span></span> LOCAL-FIRST · RUST · ESP32-P4</p>
+          <h1 id="hero-title">Give TheOrc hands.<br /><em>Keep humans in control.</em></h1>
+          <p class="hero-lede">
+            OrcLink is the policy-gated control plane between AI intent and real hardware. Apps ask for typed capabilities; one authoritative daemon validates, dispatches, verifies, and records what actually happened.
+          </p>
+          <div class="hero-actions">
+            <a class="button primary" href="https://github.com/hardcoreerik/OrcLink">View on GitHub <span>→</span></a>
+            <a class="button secondary" href="https://github.com/hardcoreerik/OrcLink#quick-start">Build it locally</a>
+          </div>
+          <ul class="proof-strip" aria-label="Project principles">
+            <li><b>LOCAL</b><span>No cloud account required</span></li>
+            <li><b>TYPED</b><span>No arbitrary AI shell</span></li>
+            <li><b>AUDITED</b><span>Every lifecycle fact recorded</span></li>
+          </ul>
+        </div>
+
+        <div class="hero-visual" aria-label="OrcLink edge node status illustration">
+          <div class="signal-label"><i></i> EDGE AUTHORITY ONLINE</div>
+          <img src="assets/operator.png" alt="TheOrc operator emblem" />
+          <div class="status-card status-card-a"><span>WAVESHARE P4</span><strong>ETH ONLINE</strong><small>DISPLAY · TOUCH · WIFI SCAN</small></div>
+          <div class="status-card status-card-b"><span>M5TAB5</span><strong>AGENT READY</strong><small>AUTH · JOURNAL · CONSOLE</small></div>
+          <div class="status-card status-card-c"><span>RTL-SDR V4</span><strong>USB PROVEN</strong><small>NATIVE IQ IS NEXT</small></div>
+        </div>
+      </section>
+
+      <section class="manifesto" aria-labelledby="manifesto-title">
+        <p class="section-number">01 / THE LINK</p>
+        <div>
+          <h2 id="manifesto-title">One driver surface.<br />Many apps. <em>One authority.</em></h2>
+          <p>
+            USB devices should not be fought over by every tool that wants them. OrcLink lets an authenticated adapter or ESP32 agent own the physical connection, then exposes narrow operations to Control Room, TheOrc, and future applications.
+          </p>
+        </div>
+      </section>
+
+      <section id="architecture" class="architecture" aria-labelledby="architecture-title">
+        <div class="section-heading">
+          <p class="eyebrow"><span></span> AUTHORITY BEFORE AUTOMATION</p>
+          <h2 id="architecture-title">Intent enters. Evidence leaves.</h2>
+          <p>No client gets to skip identity, policy, risk, approval, or verification.</p>
+        </div>
+
+        <div class="flow" aria-label="OrcLink command lifecycle">
+          <article>
+            <span class="step">01</span>
+            <small>UNTRUSTED CLIENTS</small>
+            <h3>Propose</h3>
+            <p>TheOrc, Control Room, CLI, and apps submit typed intent.</p>
+          </article>
+          <b class="flow-arrow" aria-hidden="true">→</b>
+          <article class="authority-card">
+            <span class="step">02</span>
+            <small>ORCLINKD AUTHORITY</small>
+            <h3>Validate + gate</h3>
+            <p>Identity, schema, policy, risk, approval, deadline, and lifecycle.</p>
+          </article>
+          <b class="flow-arrow" aria-hidden="true">→</b>
+          <article>
+            <span class="step">03</span>
+            <small>BOUNDED ADAPTER</small>
+            <h3>Execute + verify</h3>
+            <p>One capability reaches hardware; observed outcome returns.</p>
+          </article>
+          <b class="flow-arrow" aria-hidden="true">→</b>
+          <article>
+            <span class="step">04</span>
+            <small>THE CHRONICLE</small>
+            <h3>Remember</h3>
+            <p>Immutable facts preserve provenance, state, and uncertainty.</p>
+          </article>
+        </div>
+      </section>
+
+      <section id="proofs" class="proofs" aria-labelledby="proofs-title">
+        <div class="section-heading split">
+          <div>
+            <p class="eyebrow"><span></span> MEASURED, NOT MARKETED</p>
+            <h2 id="proofs-title">Live hardware proofs</h2>
+          </div>
+          <p>OrcLink calls a thing proven only after it is observed on the exact hardware. Compiles and mock responses stay labeled as such.</p>
+        </div>
+
+        <div class="proof-grid">
+          <article class="proof-card flagship">
+            <div class="card-top"><span class="state proven">PROVEN</span><b>ESP32-P4</b></div>
+            <h3>Waveshare P4 field console</h3>
+            <p>A 320×240 touch dashboard on the ESP32-P4 dev kit, driven by an ILI9341 display and XPT2046 controller.</p>
+            <ul>
+              <li><span>DISPLAY</span><strong>3 live pages</strong></li>
+              <li><span>TOUCH</span><strong>Page control</strong></li>
+              <li><span>ETHERNET</span><strong>100 Mbps full duplex</strong></li>
+              <li><span>WIFI</span><strong>ESP-Hosted scan</strong></li>
+            </ul>
+            <a href="https://github.com/hardcoreerik/OrcLink/tree/main/firmware/waveshare-p4">Board proof and pin map →</a>
+          </article>
+
+          <article class="proof-card">
+            <div class="card-top"><span class="state proven">PROVEN</span><b>ESP32-P4</b></div>
+            <h3>M5Tab5 edge agent</h3>
+            <p>A touch-first operator console with stable identity, authenticated telemetry, an offline event journal, and bounded workflows.</p>
+            <ul>
+              <li><span>DISPLAY</span><strong>1280×720 touch</strong></li>
+              <li><span>IDENTITY</span><strong>Physical pairing</strong></li>
+              <li><span>OFFLINE</span><strong>Bounded + signed</strong></li>
+            </ul>
+            <a href="https://github.com/hardcoreerik/OrcLink/tree/main/firmware/m5tab5">Explore M5Tab5 firmware →</a>
+          </article>
+
+          <article class="proof-card">
+            <div class="card-top"><span class="state next">NEXT GATE</span><b>USB RADIO</b></div>
+            <h3>RTL-SDR.COM V4</h3>
+            <p>Direct high-speed USB enumeration is proven on M5Tab5. The clean-room driver path is moving toward bounded native IQ capture.</p>
+            <ul>
+              <li><span>USB</span><strong>Native enumeration</strong></li>
+              <li><span>TUNER</span><strong>R828D pending</strong></li>
+              <li><span>IQ</span><strong>Capture pending</strong></li>
+            </ul>
+            <a href="https://github.com/hardcoreerik/OrcLink/blob/main/docs/ESP32_RTL_SDR_DRIVER_PLAN.md">Read the universal driver plan →</a>
+          </article>
+        </div>
+      </section>
+
+      <section class="universal" aria-labelledby="universal-title">
+        <div class="universal-art">
+          <img src="assets/icon.png" alt="TheOrc circuit emblem" />
+          <span class="orbit orbit-one">APPS</span>
+          <span class="orbit orbit-two">ESP32</span>
+          <span class="orbit orbit-three">USB</span>
+          <span class="orbit orbit-four">RADIO</span>
+        </div>
+        <div class="universal-copy">
+          <p class="eyebrow"><span></span> UNIVERSAL ESP32 DIRECTION</p>
+          <h2 id="universal-title">A portable driver stack, not a one-board trick.</h2>
+          <p>
+            M5Tab5 proved the native USB path. Waveshare P4 proved the board-support split across display, touch, Ethernet, and an ESP32-C6 Wi-Fi sidecar. The next layer turns those lessons into portable ESP-IDF components with thin board profiles.
+          </p>
+          <div class="feature-list">
+            <div><b>01</b><span><strong>Core driver</strong><small>USB, tuner, capture, buffers, and metrics</small></span></div>
+            <div><b>02</b><span><strong>Board profiles</strong><small>Pins, power, PSRAM, display, touch, and network</small></span></div>
+            <div><b>03</b><span><strong>OrcLink API</strong><small>Typed ownership, streaming, policy, and audit</small></span></div>
+          </div>
+          <a class="text-link" href="https://github.com/hardcoreerik/OrcLink/blob/main/docs/ESP32_RTL_SDR_DRIVER_PLAN.md">See the expansion plan <span>→</span></a>
+        </div>
+      </section>
+
+      <section class="warband" aria-labelledby="warband-title">
+        <img src="assets/goblin-swarm.png" alt="TheOrc Goblin Swarm surrounding the orchestrator" />
+        <div class="warband-copy">
+          <p class="eyebrow"><span></span> ONE WARBAND</p>
+          <h2 id="warband-title">TheOrc plans.<br />OrcLink touches reality.</h2>
+          <p>
+            TheOrc remains the HIVE boss. TheOrc Companion scouts and relays. OrcLink owns the last responsible mile between a proposal and a physical system.
+          </p>
+          <div class="project-links">
+            <a href="https://github.com/hardcoreerik/TheOrc"><b>TheOrc</b><span>Local AI orchestrator</span></a>
+            <a href="https://github.com/hardcoreerik/TheOrcCompanion"><b>Companion</b><span>Android field node</span></a>
+            <a href="https://github.com/hardcoreerik/OrcLink"><b>OrcLink</b><span>Edge-control authority</span></a>
+          </div>
+        </div>
+      </section>
+
+      <section class="final-cta" aria-labelledby="cta-title">
+        <p class="eyebrow"><span></span> YOUR HARDWARE. YOUR RULES.</p>
+        <h2 id="cta-title">Build the link.</h2>
+        <p>Inspect the proofs, run the tests, and help turn direct ESP32 hardware control into a reusable, honest, safety-first platform.</p>
+        <div class="hero-actions">
+          <a class="button primary" href="https://github.com/hardcoreerik/OrcLink">Enter the repository <span>→</span></a>
+          <a class="button secondary" href="https://github.com/hardcoreerik/OrcLink/blob/main/PROJECT_STATUS.md">Read current status</a>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <a class="brand" href="#top">
+        <img src="assets/icon.png" alt="" />
+        <span><strong>ORCLINK</strong><small>THEORC EDGE CONTROL</small></span>
+      </a>
+      <p>Created by <a href="https://github.com/hardcoreerik">Erik / hardcoreerik</a> · Human-led, AI-assisted.</p>
+      <p class="footer-state"><i></i> LOCAL-FIRST BY DESIGN</p>
+    </footer>
+  </body>
+</html>
