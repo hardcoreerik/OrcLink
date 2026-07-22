@@ -81,5 +81,8 @@ The Companion can eventually surface OrcLink state and contribute constrained wo
 - [Project status](../PROJECT_STATUS.md)
 - [Security reporting policy](../SECURITY.md)
 - [AI development disclosure](AI_DEVELOPMENT_DISCLOSURE.md)
+- [Open-source license](../LICENSE)
+- [Dual-licensing explanation](../LICENSING.md)
+- [Contributor License Agreement](../CLA.md)
 
-OrcLink does not yet publish a software license. The sibling repositories currently use different terms, so ecosystem alignment does not imply a licensing choice.
+OrcLink follows TheOrc's AGPL-3.0 plus commercial dual-license model. TheOrc Companion remains independently licensed under its own repository terms.

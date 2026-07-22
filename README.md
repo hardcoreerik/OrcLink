@@ -9,6 +9,7 @@
 [![ESP32-P4](https://img.shields.io/badge/edge-ESP32--P4-9DFF00?style=for-the-badge&logo=espressif&logoColor=111111)](#measured-hardware-proofs)
 [![Local first](https://img.shields.io/badge/network-local--first-161616?style=for-the-badge)](#authority-before-automation)
 [![Hardware proof](https://img.shields.io/badge/status-live_hardware_proofs-569CD6?style=for-the-badge)](#what-works-today)
+[![License](https://img.shields.io/badge/license-AGPL--3.0-39FF6A?style=for-the-badge)](LICENSE)
 [![Build](https://img.shields.io/github/actions/workflow/status/hardcoreerik/OrcLink/ci.yml?branch=main&style=for-the-badge&label=build)](https://github.com/hardcoreerik/OrcLink/actions/workflows/ci.yml)
 [![Orc ecosystem](https://img.shields.io/badge/warband-Orc_ecosystem-39FF6A?style=for-the-badge)](docs/ORC_ECOSYSTEM.md)
 
@@ -193,9 +194,11 @@ Phases 0–8 have narrow implementation proofs. The active hardware gate is boun
 
 This is an active hardware-research project, not a claim of production safety certification. Every live-hardware milestone records what was measured, what merely compiled, and what remains unknown.
 
-## Licensing status
+## License
 
-OrcLink does not currently publish a software license. Public source visibility alone does not grant permission to copy, modify, or redistribute the code. TheOrc and TheOrc Companion currently use different licensing models, so selecting OrcLink's terms remains an explicit maintainer decision rather than an inferred ecosystem default.
+OrcLink follows TheOrc's dual-license model. The public project is licensed under the **GNU Affero General Public License v3.0 (AGPL-3.0)**. A separate commercial license is available when AGPL copyleft or network-source obligations do not fit a proprietary product or service.
+
+See [LICENSE](LICENSE) for the binding open-source terms, [LICENSING.md](LICENSING.md) for the plain-language dual-license explanation, and [CLA.md](CLA.md) for contribution terms that preserve the commercial-licensing option.
 
 ## Ecosystem and governance
 

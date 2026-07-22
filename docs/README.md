@@ -14,6 +14,7 @@
 | [Roadmap](ROADMAP.md) | Sequenced implementation direction |
 | [Decisions](DECISIONS.md) | Accepted architectural decisions and rationale |
 | [AI development disclosure](AI_DEVELOPMENT_DISCLOSURE.md) | Human ownership, AI assistance, and evidence rules |
+| [Licensing](../LICENSING.md) | AGPL-3.0 default, commercial option, and contributor-rights model |
 
 ---
 

@@ -53,6 +53,7 @@ The code, tests, `PROJECT_STATUS.md`, and measured entries in `docs/ROADMAP.md` 
 - For Rust changes, run focused package tests first, then the workspace baseline when practical. Run `cargo clippy --workspace --all-targets -- -D warnings` for release-quality or adapter-boundary changes.
 - Control Room JavaScript syntax check: from `apps/control-room`, run `npm run check`. Tauri commands use the pinned local CLI via `npm run tauri -- ...`.
 - Protocol changes must keep Rust types, `schemas/protocol-v1.schema.json`, fixtures/examples, and cross-record invariant tests synchronized. Treat protocol-major, protocol-minor, capability-schema, and adapter versions as distinct concepts.
+- OrcLink is dual-licensed under AGPL-3.0 and separate commercial terms. New Rust packages inherit `AGPL-3.0-only` from `[workspace.package]`; contribution guidance must continue to link `CLA.md` so commercial relicensing rights remain coherent.
 - Add regression tests for lifecycle, policy denial, approval binding, idempotency, timeouts/cancellation, restart reconciliation, deduplication, redaction, and uncertain outcomes as relevant.
 - Do not claim live hardware success from a compile, mock, transport response, or decoder smoke. Record exact device identity, bounded procedure, artifact hashes where applicable, observed result, and remaining unknowns.
 
