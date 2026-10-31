@@ -210,3 +210,9 @@ See [LICENSE](LICENSE) for the binding open-source terms, [LICENSING.md](LICENSI
 - [AI development disclosure](docs/AI_DEVELOPMENT_DISCLOSURE.md) — how AI assistance, evidence, and human decisions are represented
 
 OrcLink is created and maintained by [Erik / hardcoreerik](https://github.com/hardcoreerik), with AI-assisted implementation, review, and verification. Product direction, hardware choices, risk acceptance, and release decisions remain human-owned.
+
+## Support development
+
+If this project is useful to you, consider supporting its development. Across ORC projects, support helps fund development time, hardware testing, receiver compatibility, and decoder work.
+
+[GitHub Sponsors](https://github.com/sponsors/hardcoreerik) · [Ko-fi](https://ko-fi.com/hardcoreerik) · [PayPal](https://paypal.me/hardcoreerik)
